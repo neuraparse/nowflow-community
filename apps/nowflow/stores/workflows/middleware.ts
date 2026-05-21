@@ -1,0 +1,560 @@
+import { StateCreator } from 'zustand'
+import { saveSubblockValues, saveWorkflowState } from './persistence'
+import { useWorkflowRegistry } from './registry/store'
+import { useSubBlockStore } from './subblock/store'
+import { WorkflowState, WorkflowStore } from './workflow/types'
+
+// Types
+interface HistoryEntry {
+  state: WorkflowState
+  timestamp: number
+  action: string
+  subblockValues: Record<string, Record<string, any>>
+}
+
+interface WorkflowHistory {
+  past: HistoryEntry[]
+  present: HistoryEntry
+  future: HistoryEntry[]
+}
+
+interface HistoryActions {
+  undo: () => void
+  redo: () => void
+  canUndo: () => boolean
+  canRedo: () => boolean
+  revertToHistoryState: (index: number) => void
+  clearHistory: () => void
+  exportHistory: () => string
+  importHistory: (historyJson: string) => boolean
+  getHistorySize: () => number
+}
+
+// MAX for each individual workflow
+const MAX_HISTORY_LENGTH = 20
+
+// Types for workflow store with history management capabilities
+export interface WorkflowStoreWithHistory extends WorkflowStore, HistoryActions {
+  history: WorkflowHistory
+  revertToDeployedState: (deployedState: WorkflowState) => void
+}
+
+// Higher-order store middleware that adds undo/redo functionality
+export const withHistory = (
+  config: StateCreator<WorkflowStore>
+): StateCreator<WorkflowStoreWithHistory> => {
+  return (set, get, api) => {
+    // Initialize store with history tracking
+    const initialState = config(set as any, get as any, api)
+    const initialHistoryEntry: HistoryEntry = {
+      state: {
+        blocks: initialState.blocks,
+        edges: initialState.edges,
+        loops: initialState.loops,
+        groups: initialState.groups || {},
+        selectedNodeIds: initialState.selectedNodeIds || [],
+        highlightedNodeId: initialState.highlightedNodeId || null,
+        highlightedEdgeIds: initialState.highlightedEdgeIds || [],
+        selectedBlockForSidebar: initialState.selectedBlockForSidebar || null,
+        isRightSidebarOpen: initialState.isRightSidebarOpen || false,
+        lastSaved: initialState.lastSaved,
+        isDeployed: initialState.isDeployed || false,
+        deployedAt: initialState.deployedAt,
+        needsRedeployment: initialState.needsRedeployment || false,
+        hasActiveSchedule: initialState.hasActiveSchedule || false,
+        hasActiveWebhook: initialState.hasActiveWebhook || false,
+        lastUpdate: initialState.lastUpdate,
+        interaction: initialState.interaction || {
+          isDragging: false,
+          isEditing: false,
+          lastInteractionTime: 0,
+          lastDurableChangeTime: 0,
+        },
+      },
+      timestamp: Date.now(),
+      action: 'Initial state',
+      subblockValues: {}, // Add storage for subblock values
+    }
+
+    return {
+      ...initialState,
+      history: {
+        past: [],
+        present: initialHistoryEntry,
+        future: [],
+      },
+
+      // Check if undo operation is available
+      canUndo: () => get().history.past.length > 0,
+
+      // Check if redo operation is available
+      canRedo: () => get().history.future.length > 0,
+
+      // Restore previous state from history
+      undo: () => {
+        const { history, ...state } = get()
+        if (history.past.length === 0) return
+
+        const previous = history.past[history.past.length - 1]
+        const newPast = history.past.slice(0, history.past.length - 1)
+
+        // Get active workflow ID for subblock handling
+        const activeWorkflowId = useWorkflowRegistry.getState().activeWorkflowId
+        if (!activeWorkflowId) return
+
+        // Apply the state change
+        set({
+          ...state,
+          ...previous.state,
+          history: {
+            past: newPast,
+            present: previous,
+            future: [history.present, ...history.future],
+          },
+          lastSaved: Date.now(),
+        })
+
+        // Restore subblock values from the previous state's snapshot
+        if (previous.subblockValues && activeWorkflowId) {
+          // Update the subblock store with the saved values
+          useSubBlockStore.setState({
+            workflowValues: {
+              ...useSubBlockStore.getState().workflowValues,
+              [activeWorkflowId]: previous.subblockValues,
+            },
+          })
+
+          // Save to localStorage
+          saveSubblockValues(activeWorkflowId, previous.subblockValues)
+        }
+
+        // Save workflow state after undo
+        const currentState = get()
+        saveWorkflowState(activeWorkflowId, {
+          blocks: currentState.blocks,
+          edges: currentState.edges,
+          loops: currentState.loops,
+          groups: currentState.groups,
+          history: currentState.history,
+          isDeployed: currentState.isDeployed,
+          deployedAt: currentState.deployedAt,
+          lastSaved: Date.now(),
+        })
+      },
+
+      // Restore next state from history
+      redo: () => {
+        const { history, ...state } = get()
+        if (history.future.length === 0) return
+
+        const next = history.future[0]
+        const newFuture = history.future.slice(1)
+
+        // Get active workflow ID for subblock handling
+        const activeWorkflowId = useWorkflowRegistry.getState().activeWorkflowId
+        if (!activeWorkflowId) return
+
+        // Apply the state change
+        set({
+          ...state,
+          ...next.state,
+          history: {
+            past: [...history.past, history.present],
+            present: next,
+            future: newFuture,
+          },
+          lastSaved: Date.now(),
+        })
+
+        // Restore subblock values from the next state's snapshot
+        if (next.subblockValues && activeWorkflowId) {
+          // Update the subblock store with the saved values
+          useSubBlockStore.setState({
+            workflowValues: {
+              ...useSubBlockStore.getState().workflowValues,
+              [activeWorkflowId]: next.subblockValues,
+            },
+          })
+
+          // Save to localStorage
+          saveSubblockValues(activeWorkflowId, next.subblockValues)
+        }
+
+        // Save workflow state after redo
+        const currentState = get()
+        saveWorkflowState(activeWorkflowId, {
+          blocks: currentState.blocks,
+          edges: currentState.edges,
+          loops: currentState.loops,
+          groups: currentState.groups,
+          history: currentState.history,
+          isDeployed: currentState.isDeployed,
+          deployedAt: currentState.deployedAt,
+          lastSaved: Date.now(),
+        })
+      },
+
+      // Reset workflow to empty state
+      clear: () => {
+        const emptyInteraction = {
+          isDragging: false,
+          isEditing: false,
+          lastInteractionTime: 0,
+          lastDurableChangeTime: 0,
+        }
+        const newState = {
+          blocks: {},
+          edges: [],
+          loops: {},
+          groups: {},
+          selectedNodeIds: [],
+          highlightedNodeId: null,
+          highlightedEdgeIds: [],
+          selectedBlockForSidebar: null,
+          isRightSidebarOpen: false,
+          lastSaved: Date.now(),
+          isDeployed: false,
+          deployedAt: undefined,
+          needsRedeployment: false,
+          hasActiveSchedule: false,
+          hasActiveWebhook: false,
+          lastUpdate: undefined,
+          interaction: emptyInteraction,
+          history: {
+            past: [],
+            present: {
+              state: {
+                blocks: {},
+                edges: [],
+                loops: {},
+                groups: {},
+                selectedNodeIds: [],
+                highlightedNodeId: null,
+                highlightedEdgeIds: [],
+                selectedBlockForSidebar: null,
+                isRightSidebarOpen: false,
+                lastSaved: Date.now(),
+                isDeployed: false,
+                deployedAt: undefined,
+                needsRedeployment: false,
+                hasActiveSchedule: false,
+                hasActiveWebhook: false,
+                lastUpdate: undefined,
+                interaction: emptyInteraction,
+              },
+              timestamp: Date.now(),
+              action: 'Clear workflow',
+              subblockValues: {},
+            },
+            future: [],
+          },
+        }
+        set(newState)
+        return newState
+      },
+
+      // Jump to specific point in history
+      revertToHistoryState: (index: number) => {
+        const { history, ...state } = get()
+        const allStates = [...history.past, history.present, ...history.future]
+        const targetState = allStates[index]
+
+        if (!targetState) return
+
+        // Get active workflow ID for subblock handling
+        const activeWorkflowId = useWorkflowRegistry.getState().activeWorkflowId
+        if (!activeWorkflowId) return
+
+        const newPast = allStates.slice(0, index)
+        const newFuture = allStates.slice(index + 1)
+
+        set({
+          ...state,
+          ...targetState.state,
+          history: {
+            past: newPast,
+            present: targetState,
+            future: newFuture,
+          },
+          lastSaved: Date.now(),
+        })
+
+        // Restore subblock values from the target state's snapshot
+        if (targetState.subblockValues && activeWorkflowId) {
+          // Update the subblock store with the saved values
+          useSubBlockStore.setState({
+            workflowValues: {
+              ...useSubBlockStore.getState().workflowValues,
+              [activeWorkflowId]: targetState.subblockValues,
+            },
+          })
+
+          // Save to localStorage
+          saveSubblockValues(activeWorkflowId, targetState.subblockValues)
+        }
+
+        // Save workflow state after revert
+        const currentState = get()
+        saveWorkflowState(activeWorkflowId, {
+          blocks: currentState.blocks,
+          edges: currentState.edges,
+          loops: currentState.loops,
+          groups: currentState.groups,
+          history: currentState.history,
+          isDeployed: currentState.isDeployed,
+          deployedAt: currentState.deployedAt,
+          lastSaved: Date.now(),
+        })
+      },
+
+      // Clear all history (keeps only current state)
+      clearHistory: () => {
+        const { history, ...state } = get()
+        const activeWorkflowId = useWorkflowRegistry.getState().activeWorkflowId
+
+        set({
+          ...state,
+          history: {
+            past: [],
+            present: history.present,
+            future: [],
+          },
+          lastSaved: Date.now(),
+        })
+
+        // Save to localStorage
+        if (activeWorkflowId) {
+          const currentState = get()
+          saveWorkflowState(activeWorkflowId, {
+            blocks: currentState.blocks,
+            edges: currentState.edges,
+            loops: currentState.loops,
+            groups: currentState.groups,
+            history: currentState.history,
+            isDeployed: currentState.isDeployed,
+            deployedAt: currentState.deployedAt,
+            lastSaved: Date.now(),
+          })
+        }
+      },
+
+      // Export history as JSON
+      exportHistory: () => {
+        const { history } = get()
+        return JSON.stringify(
+          {
+            past: history.past,
+            present: history.present,
+            future: history.future,
+            exportedAt: new Date().toISOString(),
+            version: '1.0',
+          },
+          null,
+          2
+        )
+      },
+
+      // Import history from JSON
+      importHistory: (historyJson: string) => {
+        try {
+          const imported = JSON.parse(historyJson)
+
+          // Validate structure
+          if (!imported.past || !imported.present || !imported.future) {
+            console.error('Invalid history format')
+            return false
+          }
+
+          const { ...state } = get()
+          const activeWorkflowId = useWorkflowRegistry.getState().activeWorkflowId
+
+          set({
+            ...state,
+            history: {
+              past: imported.past,
+              present: imported.present,
+              future: imported.future,
+            },
+            lastSaved: Date.now(),
+          })
+
+          // Save to localStorage
+          if (activeWorkflowId) {
+            const currentState = get()
+            saveWorkflowState(activeWorkflowId, {
+              blocks: currentState.blocks,
+              edges: currentState.edges,
+              loops: currentState.loops,
+              groups: currentState.groups,
+              history: currentState.history,
+              isDeployed: currentState.isDeployed,
+              deployedAt: currentState.deployedAt,
+              lastSaved: Date.now(),
+            })
+          }
+
+          return true
+        } catch (error) {
+          console.error('Failed to import history:', error)
+          return false
+        }
+      },
+
+      // Get total history size
+      getHistorySize: () => {
+        const { history } = get()
+        return history.past.length + 1 + history.future.length
+      },
+
+      // Revert to deployed state
+      revertToDeployedState: (deployedState: WorkflowState) => {
+        const { history, ...state } = get()
+        const activeWorkflowId = useWorkflowRegistry.getState().activeWorkflowId
+
+        const newEntry = createHistoryEntry(deployedState, 'Reverted to deployed state')
+
+        set({
+          ...state,
+          ...deployedState,
+          history: {
+            past: [...history.past, history.present],
+            present: newEntry,
+            future: [],
+          },
+          lastSaved: Date.now(),
+        })
+
+        // Save to localStorage
+        if (activeWorkflowId) {
+          saveWorkflowState(activeWorkflowId, {
+            blocks: deployedState.blocks,
+            edges: deployedState.edges,
+            loops: deployedState.loops,
+            groups: deployedState.groups,
+            history: {
+              past: [...history.past, history.present],
+              present: newEntry,
+              future: [],
+            },
+            isDeployed: deployedState.isDeployed,
+            deployedAt: deployedState.deployedAt,
+            lastSaved: Date.now(),
+          })
+        }
+      },
+    }
+  }
+}
+
+// Create a new history entry with current state snapshot
+export const createHistoryEntry = (state: WorkflowState, action: string): HistoryEntry => {
+  // Get active workflow ID for subblock handling
+  const activeWorkflowId = useWorkflowRegistry.getState().activeWorkflowId
+
+  // Create a deep copy of the state
+  const stateCopy: WorkflowState = {
+    blocks: { ...state.blocks },
+    edges: [...state.edges],
+    loops: { ...state.loops },
+    groups: { ...state.groups },
+    selectedNodeIds: [...(state.selectedNodeIds || [])],
+    highlightedNodeId: state.highlightedNodeId,
+    highlightedEdgeIds: [...(state.highlightedEdgeIds || [])],
+    selectedBlockForSidebar: state.selectedBlockForSidebar,
+    isRightSidebarOpen: state.isRightSidebarOpen || false,
+    lastSaved: state.lastSaved,
+    isDeployed: state.isDeployed,
+    deployedAt: state.deployedAt,
+    needsRedeployment: state.needsRedeployment,
+    hasActiveSchedule: state.hasActiveSchedule,
+    hasActiveWebhook: state.hasActiveWebhook,
+    lastUpdate: state.lastUpdate,
+    interaction: state.interaction || {
+      isDragging: false,
+      isEditing: false,
+      lastInteractionTime: 0,
+      lastDurableChangeTime: 0,
+    },
+  }
+
+  // Capture the current subblock values for this workflow
+  let subblockValues = {}
+
+  if (activeWorkflowId) {
+    // Get the current subblock values from the store
+    const currentValues = useSubBlockStore.getState().workflowValues[activeWorkflowId] || {}
+
+    // Create a deep copy to ensure we don't have reference issues
+    subblockValues = JSON.parse(JSON.stringify(currentValues))
+  }
+
+  return {
+    state: stateCopy,
+    timestamp: Date.now(),
+    action,
+    subblockValues,
+  }
+}
+
+// Add new entry to history and maintain history size limit
+export const pushHistory = (
+  set: (
+    partial:
+      | Partial<WorkflowStoreWithHistory>
+      | ((state: WorkflowStoreWithHistory) => Partial<WorkflowStoreWithHistory>),
+    replace?: boolean
+  ) => void,
+  get: () => WorkflowStoreWithHistory,
+  newState: Partial<WorkflowState>,
+  action: string
+) => {
+  const { history } = get()
+  const currentState = get()
+
+  // Create complete workflow state with defaults for missing fields
+  const completeState: WorkflowState = {
+    blocks: newState.blocks || currentState.blocks || {},
+    edges: newState.edges || currentState.edges || [],
+    loops: newState.loops || currentState.loops || {},
+    groups: newState.groups || currentState.groups || {},
+    selectedNodeIds: newState.selectedNodeIds || currentState.selectedNodeIds || [],
+    highlightedNodeId:
+      newState.highlightedNodeId !== undefined
+        ? newState.highlightedNodeId
+        : currentState.highlightedNodeId || null,
+    highlightedEdgeIds: newState.highlightedEdgeIds || currentState.highlightedEdgeIds || [],
+    selectedBlockForSidebar:
+      newState.selectedBlockForSidebar !== undefined
+        ? newState.selectedBlockForSidebar
+        : currentState.selectedBlockForSidebar || null,
+    isRightSidebarOpen:
+      newState.isRightSidebarOpen !== undefined
+        ? newState.isRightSidebarOpen
+        : currentState.isRightSidebarOpen || false,
+    lastSaved: newState.lastSaved,
+    isDeployed: newState.isDeployed,
+    deployedAt: newState.deployedAt,
+    needsRedeployment: newState.needsRedeployment,
+    hasActiveSchedule: newState.hasActiveSchedule,
+    hasActiveWebhook: newState.hasActiveWebhook,
+    lastUpdate: newState.lastUpdate,
+    interaction: newState.interaction ||
+      currentState.interaction || {
+        isDragging: false,
+        isEditing: false,
+        lastInteractionTime: 0,
+        lastDurableChangeTime: 0,
+      },
+  }
+
+  const newEntry = createHistoryEntry(completeState, action)
+
+  set({
+    history: {
+      past: [...history.past, history.present].slice(-MAX_HISTORY_LENGTH),
+      present: newEntry,
+      future: [],
+    },
+    lastSaved: Date.now(),
+  })
+}

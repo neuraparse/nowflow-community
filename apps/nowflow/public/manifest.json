@@ -1,0 +1,77 @@
+{
+  "id": "/",
+  "name": "NowFlow Community",
+  "short_name": "NowFlow",
+  "description": "Open-source visual workflow automation for local and self-hosted community use.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "background_color": "#0f172a",
+  "theme_color": "#4f46e5",
+  "orientation": "portrait-primary",
+  "dir": "ltr",
+  "lang": "en-US",
+  "handle_links": "preferred",
+  "icons": [
+    {
+      "src": "/static/nowflow-logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["business", "productivity", "utilities", "automation", "ai"],
+  "screenshots": [
+    {
+      "src": "/opengraph-image",
+      "sizes": "1200x630",
+      "type": "image/png",
+      "label": "NowFlow Community",
+      "form_factor": "wide"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Create Workflow",
+      "short_name": "New Workflow",
+      "description": "Create a new workflow",
+      "url": "/w",
+      "icons": [
+        {
+          "src": "/static/nowflow-logo.svg",
+          "sizes": "any",
+          "type": "image/svg+xml"
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "View your workflows",
+      "url": "/dashboard",
+      "icons": [
+        {
+          "src": "/static/nowflow-logo.svg",
+          "sizes": "any",
+          "type": "image/svg+xml"
+        }
+      ]
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false,
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+  "share_target": {
+    "action": "/w",
+    "method": "GET",
+    "enctype": "application/x-www-form-urlencoded",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  }
+}

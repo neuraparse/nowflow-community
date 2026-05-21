@@ -1,0 +1,126 @@
+import { ActiveCampaignIcon } from '@/components/icons'
+import { createOperationDropdown, createParamTransformer, defineBlock } from '../helpers'
+
+export const ActiveCampaignBlock = defineBlock({
+  type: 'activecampaign',
+  name: 'ActiveCampaign',
+  description: 'Marketing automation and CRM platform',
+  longDescription:
+    'Integrate with ActiveCampaign for email marketing, marketing automation, sales automation, and CRM. Manage contacts, campaigns, automation workflows, deals, and track customer engagement with API key authentication.',
+  category: 'tools',
+  bgColor: '#356AE6',
+  icon: ActiveCampaignIcon,
+  subBlocks: [
+    {
+      id: 'credential',
+      title: 'ActiveCampaign API Key',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: 'Enter your ActiveCampaign API key',
+    },
+    {
+      id: 'accountUrl',
+      title: 'Account URL',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: 'https://youraccountname.api-us1.com',
+    },
+    createOperationDropdown({
+      operations: [
+        { id: 'create_contact', label: 'Create Contact' },
+        { id: 'get_contact', label: 'Get Contact' },
+        { id: 'list_contacts', label: 'List Contacts' },
+        { id: 'update_contact', label: 'Update Contact' },
+        { id: 'add_tag', label: 'Add Tag to Contact' },
+        { id: 'create_deal', label: 'Create Deal' },
+        { id: 'list_deals', label: 'List Deals' },
+        { id: 'create_campaign', label: 'Create Campaign' },
+        { id: 'list_campaigns', label: 'List Campaigns' },
+        { id: 'list_automations', label: 'List Automations' },
+      ],
+      defaultValue: 'list_contacts',
+    }),
+    {
+      id: 'contactId',
+      title: 'Contact ID',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: 'Enter contact ID',
+      condition: { field: 'operation', value: ['get_contact', 'update_contact', 'add_tag'] },
+    },
+    {
+      id: 'email',
+      title: 'Email',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: 'contact@example.com',
+      condition: { field: 'operation', value: ['create_contact', 'update_contact'] },
+    },
+    {
+      id: 'firstName',
+      title: 'First Name',
+      type: 'short-input',
+      layout: 'half',
+      placeholder: 'John',
+      condition: { field: 'operation', value: ['create_contact', 'update_contact'] },
+    },
+    {
+      id: 'lastName',
+      title: 'Last Name',
+      type: 'short-input',
+      layout: 'half',
+      placeholder: 'Doe',
+      condition: { field: 'operation', value: ['create_contact', 'update_contact'] },
+    },
+    {
+      id: 'tag',
+      title: 'Tag',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: 'customer, vip, newsletter',
+      condition: { field: 'operation', value: 'add_tag' },
+    },
+    {
+      id: 'dealTitle',
+      title: 'Deal Title',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: 'Enterprise Deal',
+      condition: { field: 'operation', value: 'create_deal' },
+    },
+    {
+      id: 'dealValue',
+      title: 'Deal Value',
+      type: 'short-input',
+      layout: 'half',
+      placeholder: '5000',
+      condition: { field: 'operation', value: 'create_deal' },
+    },
+  ],
+  tools: {
+    access: ['activecampaign_api'],
+    config: {
+      tool: () => 'activecampaign_api',
+      params: createParamTransformer({ dealValue: 'number' }),
+    },
+  },
+  inputs: {
+    credential: { type: 'string', required: true },
+    accountUrl: { type: 'string', required: true },
+    operation: { type: 'string', required: true },
+    contactId: { type: 'string', required: false },
+    email: { type: 'string', required: false },
+    firstName: { type: 'string', required: false },
+    lastName: { type: 'string', required: false },
+    tag: { type: 'string', required: false },
+    dealTitle: { type: 'string', required: false },
+    dealValue: { type: 'string', required: false },
+  },
+  outputs: {
+    response: {
+      type: {
+        data: 'json',
+      },
+    },
+  },
+})

@@ -1,0 +1,319 @@
+{
+  "metadata": {
+    "name": "Content Creation Assistant",
+    "description": "A content production workflow that creates blog posts, social media content, and marketing copy",
+    "category": "marketing",
+    "tags": ["content creation", "marketing", "social media", "blog", "copywriting"]
+  },
+  "blocks": [
+    {
+      "id": "starter-1",
+      "type": "starter",
+      "position": {
+        "x": 100,
+        "y": 300
+      },
+      "data": {
+        "label": "Content Request"
+      },
+      "subBlocks": {
+        "startWorkflow": "manual",
+        "inputFormat": "text"
+      }
+    },
+    {
+      "id": "agent-1",
+      "type": "agent",
+      "position": {
+        "x": 400,
+        "y": 300
+      },
+      "data": {
+        "label": "Topic Analysis"
+      },
+      "subBlocks": {
+        "systemPrompt": "You are a content strategist and subject matter expert. Analyze the given content request and extract the following information: 1) Main topic, 2) Target audience, 3) Content type (blog, social media, email, etc.), 4) Keywords. Return this information in JSON format with the following structure: {\"mainTopic\": \"...\", \"targetAudience\": \"...\", \"contentType\": \"...\", \"keywords\": [\"...\", \"...\"]}",
+        "context": "%input%",
+        "model": "gpt-4o",
+        "temperature": "0.4",
+        "maxTokens": "500"
+      }
+    },
+    {
+      "id": "function-1",
+      "type": "function",
+      "position": {
+        "x": 700,
+        "y": 300
+      },
+      "data": {
+        "label": "Content Type Determination"
+      },
+      "subBlocks": {
+        "code": "function processData(input) {\n  try {\n    // Parse agent response\n    let contentAnalysis;\n    if (typeof input.content === 'string') {\n      // Try to parse as JSON string\n      try {\n        contentAnalysis = JSON.parse(input.content);\n      } catch (e) {\n        // If JSON parsing fails, use as text\n        contentAnalysis = {\n          mainTopic: input.content,\n          targetAudience: 'General',\n          contentType: 'blog',\n          keywords: []\n        };\n      }\n    } else {\n      contentAnalysis = input.content;\n    }\n    \n    // Determine content type\n    const contentType = contentAnalysis.contentType || 'blog';\n    \n    // Normalize content type\n    let normalizedType = contentType.toLowerCase();\n    if (normalizedType.includes('blog') || normalizedType.includes('article')) {\n      normalizedType = 'blog';\n    } else if (normalizedType.includes('social') || normalizedType.includes('post')) {\n      normalizedType = 'social';\n    } else if (normalizedType.includes('email') || normalizedType.includes('newsletter')) {\n      normalizedType = 'email';\n    }\n    \n    return {\n      contentType: normalizedType,\n      analysis: contentAnalysis,\n      metadata: {\n        processingTime: new Date().toISOString(),\n        confidence: getConfidenceScore(contentAnalysis)\n      }\n    };\n  } catch (error) {\n    return {\n      contentType: 'blog',\n      analysis: {\n        mainTopic: input.content || 'Unspecified',\n        targetAudience: 'General',\n        contentType: 'blog',\n        keywords: []\n      },\n      error: error.message\n    };\n  }\n}\n\n// Helper function to calculate confidence score\nfunction getConfidenceScore(analysis) {\n  let score = 0;\n  if (analysis.mainTopic && analysis.mainTopic.length > 5) score += 0.3;\n  if (analysis.targetAudience && analysis.targetAudience.length > 3) score += 0.2;\n  if (analysis.contentType) score += 0.2;\n  if (analysis.keywords && analysis.keywords.length > 0) score += 0.3;\n  return Math.min(score, 1.0);\n}"
+      }
+    },
+    {
+      "id": "condition-1",
+      "type": "condition",
+      "position": {
+        "x": 1000,
+        "y": 300
+      },
+      "data": {
+        "label": "Content Type Routing"
+      },
+      "subBlocks": {
+        "conditions": [
+          {
+            "id": "blog",
+            "expression": "input.contentType === 'blog'",
+            "description": "Create blog content"
+          },
+          {
+            "id": "social",
+            "expression": "input.contentType === 'social'",
+            "description": "Create social media content"
+          },
+          {
+            "id": "email",
+            "expression": "input.contentType === 'email'",
+            "description": "Create email content"
+          },
+          {
+            "id": "default",
+            "expression": "true",
+            "description": "Create default content"
+          }
+        ]
+      }
+    },
+    {
+      "id": "agent-2",
+      "type": "agent",
+      "position": {
+        "x": 1300,
+        "y": 150
+      },
+      "data": {
+        "label": "Blog Post Creator"
+      },
+      "subBlocks": {
+        "systemPrompt": "You are an expert blog writer. Create SEO-friendly, informative, and engaging blog posts. Use a structured format with an introduction, main sections, and conclusion. Include a compelling title, subheadings, and incorporate keywords naturally. Focus on providing value to the reader while maintaining a conversational tone. Aim for approximately 800-1200 words.",
+        "context": "Topic analysis: %function-1.analysis%\n\nMain topic: %function-1.analysis.mainTopic%\nTarget audience: %function-1.analysis.targetAudience%\nKeywords: %function-1.analysis.keywords%\n\nPlease create a comprehensive blog post based on this information.",
+        "model": "gpt-4o",
+        "temperature": "0.7",
+        "maxTokens": "2000"
+      }
+    },
+    {
+      "id": "agent-3",
+      "type": "agent",
+      "position": {
+        "x": 1300,
+        "y": 300
+      },
+      "data": {
+        "label": "Social Media Content"
+      },
+      "subBlocks": {
+        "systemPrompt": "You are a social media content specialist. Create short, impactful, and shareable social media posts. Use appropriate length and tone for each platform. Include hashtag suggestions and consider what would drive engagement. Create content that stands out in crowded feeds and encourages sharing and interaction.",
+        "context": "Topic analysis: %function-1.analysis%\n\nMain topic: %function-1.analysis.mainTopic%\nTarget audience: %function-1.analysis.targetAudience%\nKeywords: %function-1.analysis.keywords%\n\nPlease create social media posts for Twitter, Instagram, and LinkedIn based on this information.",
+        "model": "gpt-4o",
+        "temperature": "0.8",
+        "maxTokens": "1000"
+      }
+    },
+    {
+      "id": "agent-4",
+      "type": "agent",
+      "position": {
+        "x": 1300,
+        "y": 450
+      },
+      "data": {
+        "label": "Email Content"
+      },
+      "subBlocks": {
+        "systemPrompt": "You are an email marketing specialist. Create high open-rate, persuasive email content. Include a strong subject line, personalized introduction, and clear call to action. Focus on creating value for the recipient and driving specific actions. Keep the content concise, scannable, and mobile-friendly.",
+        "context": "Topic analysis: %function-1.analysis%\n\nMain topic: %function-1.analysis.mainTopic%\nTarget audience: %function-1.analysis.targetAudience%\nKeywords: %function-1.analysis.keywords%\n\nPlease create a marketing email based on this information.",
+        "model": "gpt-4o",
+        "temperature": "0.6",
+        "maxTokens": "1000"
+      }
+    },
+    {
+      "id": "evaluator-1",
+      "type": "evaluator",
+      "position": {
+        "x": 1600,
+        "y": 300
+      },
+      "data": {
+        "label": "Content Evaluation"
+      },
+      "subBlocks": {
+        "criteria": [
+          {
+            "id": "relevance",
+            "name": "Topic Relevance",
+            "description": "How relevant is the content to the requested topic?",
+            "weight": 0.3
+          },
+          {
+            "id": "quality",
+            "name": "Content Quality",
+            "description": "How well-written and structured is the content?",
+            "weight": 0.4
+          },
+          {
+            "id": "engagement",
+            "name": "Engagement Potential",
+            "description": "How well will the content engage the target audience?",
+            "weight": 0.3
+          }
+        ],
+        "model": "gpt-4o",
+        "temperature": "0.3"
+      }
+    },
+    {
+      "id": "output-1",
+      "type": "function",
+      "position": {
+        "x": 1900,
+        "y": 300
+      },
+      "data": {
+        "label": "Final Content"
+      },
+      "subBlocks": {
+        "code": "function processData(input) {\n  // Simply return the input as the final output\n  return input;\n}"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-1",
+      "source": "starter-1",
+      "target": "agent-1",
+      "sourceHandle": "output",
+      "targetHandle": "input",
+      "type": "default",
+      "animated": true,
+      "style": { "stroke": "#3b82f6" }
+    },
+    {
+      "id": "edge-2",
+      "source": "agent-1",
+      "target": "function-1",
+      "sourceHandle": "output",
+      "targetHandle": "input",
+      "type": "default",
+      "animated": true,
+      "style": { "stroke": "#3b82f6" }
+    },
+    {
+      "id": "edge-3",
+      "source": "function-1",
+      "target": "condition-1",
+      "sourceHandle": "output",
+      "targetHandle": "input",
+      "type": "default",
+      "animated": true,
+      "style": { "stroke": "#3b82f6" }
+    },
+    {
+      "id": "edge-4",
+      "source": "condition-1",
+      "target": "agent-2",
+      "sourceHandle": "blog",
+      "targetHandle": "input",
+      "type": "custom",
+      "data": {
+        "label": "Blog"
+      },
+      "animated": true,
+      "style": { "stroke": "#10b981" }
+    },
+    {
+      "id": "edge-5",
+      "source": "condition-1",
+      "target": "agent-3",
+      "sourceHandle": "social",
+      "targetHandle": "input",
+      "type": "custom",
+      "data": {
+        "label": "Social"
+      },
+      "animated": true,
+      "style": { "stroke": "#f59e0b" }
+    },
+    {
+      "id": "edge-6",
+      "source": "condition-1",
+      "target": "agent-4",
+      "sourceHandle": "email",
+      "targetHandle": "input",
+      "type": "custom",
+      "data": {
+        "label": "Email"
+      },
+      "animated": true,
+      "style": { "stroke": "#ec4899" }
+    },
+    {
+      "id": "edge-7",
+      "source": "condition-1",
+      "target": "agent-2",
+      "sourceHandle": "default",
+      "targetHandle": "input",
+      "type": "custom",
+      "data": {
+        "label": "Default"
+      },
+      "animated": true,
+      "style": { "stroke": "#6b7280" }
+    },
+    {
+      "id": "edge-8",
+      "source": "agent-2",
+      "target": "evaluator-1",
+      "sourceHandle": "output",
+      "targetHandle": "input",
+      "type": "default",
+      "animated": true,
+      "style": { "stroke": "#10b981" }
+    },
+    {
+      "id": "edge-9",
+      "source": "agent-3",
+      "target": "evaluator-1",
+      "sourceHandle": "output",
+      "targetHandle": "input",
+      "type": "default",
+      "animated": true,
+      "style": { "stroke": "#f59e0b" }
+    },
+    {
+      "id": "edge-10",
+      "source": "agent-4",
+      "target": "evaluator-1",
+      "sourceHandle": "output",
+      "targetHandle": "input",
+      "type": "default",
+      "animated": true,
+      "style": { "stroke": "#ec4899" }
+    },
+    {
+      "id": "edge-11",
+      "source": "evaluator-1",
+      "target": "output-1",
+      "sourceHandle": "output",
+      "targetHandle": "input",
+      "type": "default",
+      "animated": true,
+      "style": { "stroke": "#3b82f6" }
+    }
+  ]
+}

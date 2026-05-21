@@ -1,0 +1,30 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":semanticCommits",
+    ":dependencyDashboard",
+    ":pinAllExceptPeerDependencies"
+  ],
+  "timezone": "Europe/Istanbul",
+  "schedule": ["after 9pm and before 6am every weekday", "every weekend"],
+  "labels": ["renovate"],
+  "rangeStrategy": "pin",
+  "prHourlyLimit": 4,
+  "prConcurrentLimit": 8,
+  "configMigration": true,
+
+  "packageRules": [
+    {
+      "description": "Major bumps always require human review",
+      "matchUpdateTypes": ["major"],
+      "automerge": false,
+      "labels": ["renovate", "major-bump", "needs-review"]
+    }
+  ],
+
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "labels": ["security"]
+  }
+}

@@ -1,0 +1,168 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+**/node_modules
+docs/node_modules
+/packages/**/node_modules
+scripts/node_modules
+apps/nowflow/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+fonts
+# testing
+/coverage
+**/coverage/
+test-results/
+playwright-report/
+blob-report/
+*.lcov
+.nyc_output/
+
+# next.js
+/.next/
+**/.next/
+nowflow/.next/
+nowflow/out/
+nowflow/build
+apps/nowflow/.next/
+apps/nowflow/out/
+apps/nowflow/build
+docs/.next/
+docs/out/
+docs/build
+
+.idea
+/.idea
+# production
+/build
+/dist
+**/dist/
+**/standalone/
+
+# misc
+.DS_Store
+Thumbs.db
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+*.jks
+*.keystore
+
+# debug
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+dev.log
+
+# env files
+.env
+.env.*
+.envrc
+.env.local
+.env.development
+.env.production
+.env.prod
+.env.staging
+.env.*.local
+.env*.local
+**/.env
+**/.env.*
+**/.envrc
+**/.env.local
+**/.env.development
+**/.env.production
+**/.env.prod
+**/.env.staging
+**/.env.*.local
+!.env.example
+!**/.env.example
+
+# vercel
+.vercel
+
+# local containers and private deployment assets
+.devcontainer/
+**/.devcontainer/
+devcontainer.json
+**/devcontainer.json
+k8s/
+**/k8s/
+kubernetes/
+**/kubernetes/
+helm/
+**/helm/
+charts/
+**/charts/
+terraform/
+**/terraform/
+.terraform/
+*.tf
+*.tfvars
+*.tfstate
+*.tfstate.*
+*.kubeconfig
+kubeconfig
+kubeconfig.*
+
+# mobile projects are not part of Community Edition
+android/
+**/android/
+ios/
+**/ios/
+mobile/
+**/mobile/
+apps/mobile/
+apps/*-mobile/
+*.apk
+*.aab
+*.ipa
+*.mobileprovision
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# docs
+docs/.source
+docs/.contentlayer
+docs/.content-collections
+
+# database instantiation
+**/postgres_data/
+
+# collector configuration
+collector-config.yaml
+docker-compose.collector.yml
+start-collector.sh
+
+# Turborepo
+.turbo
+**/.turbo/
+.cache/
+**/.cache/
+.npm/
+.eslintcache
+tmp/
+temp/
+backup*.sql
+backups/
+*.dump
+*.sql.gz
+**/data/db-backups/
+apps/nowflow/data/db-backups/
+apps/nowflow/uploads/*.png
+apps/nowflow/uploads
+
+# Papers (academic — local only, not committed)
+papers/

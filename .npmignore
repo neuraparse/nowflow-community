@@ -1,0 +1,10 @@
+# Root package is private; keep accidental npm packs small and non-sensitive.
+*
+
+!package.json
+!README.md
+!LICENSE
+!NOTICE
+!SECURITY.md
+!SUPPORT.md
+!CONTRIBUTING.md

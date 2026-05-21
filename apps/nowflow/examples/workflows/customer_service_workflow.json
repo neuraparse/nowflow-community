@@ -1,0 +1,242 @@
+{
+  "metadata": {
+    "name": "Customer Service Assistant",
+    "description": "An intelligent customer service workflow that analyzes customer inquiries and routes them to the appropriate department",
+    "category": "customer-service",
+    "tags": ["customer service", "routing", "support", "ticketing"]
+  },
+  "blocks": [
+    {
+      "id": "starter-1",
+      "type": "starter",
+      "position": {
+        "x": 100,
+        "y": 300
+      },
+      "data": {
+        "label": "Customer Request"
+      },
+      "subBlocks": {
+        "startWorkflow": "manual",
+        "inputFormat": "text"
+      }
+    },
+    {
+      "id": "agent-1",
+      "type": "agent",
+      "position": {
+        "x": 400,
+        "y": 300
+      },
+      "data": {
+        "label": "Request Analysis"
+      },
+      "subBlocks": {
+        "systemPrompt": "You are a customer service pre-assessment assistant. Analyze customer requests and determine the category of the request. In your response, return only one of the following categories: 'technical-support', 'order-status', 'return-request', 'product-info', 'complaint', or 'other'.",
+        "context": "%input%",
+        "model": "gpt-4o",
+        "temperature": "0.3",
+        "maxTokens": "100"
+      }
+    },
+    {
+      "id": "router-1",
+      "type": "router",
+      "position": {
+        "x": 700,
+        "y": 300
+      },
+      "data": {
+        "label": "Department Routing"
+      },
+      "subBlocks": {
+        "prompt": "Analyze the customer request and route to the appropriate department based on this category: %agent-1.content%\n\nIf the category contains 'technical' or 'tech', route to technical support.\nIf the category contains 'order' or 'status', route to order status.\nIf the category contains 'return' or 'refund', route to returns processing.\nOtherwise, route to technical support as the default option.",
+        "model": "gpt-4o",
+        "temperature": "0.2"
+      }
+    },
+    {
+      "id": "agent-2",
+      "type": "agent",
+      "position": {
+        "x": 1000,
+        "y": 150
+      },
+      "data": {
+        "label": "Technical Support"
+      },
+      "subBlocks": {
+        "systemPrompt": "You are a technical support specialist. Provide solution recommendations for customers' technical issues. Give step-by-step instructions and simplify technical jargon. Focus on clear, actionable advice that helps resolve the customer's problem efficiently.",
+        "context": "Customer request: %input%\nRequest category: %agent-1.content%",
+        "model": "gpt-4o",
+        "temperature": "0.5",
+        "maxTokens": "800"
+      }
+    },
+    {
+      "id": "agent-3",
+      "type": "agent",
+      "position": {
+        "x": 1000,
+        "y": 300
+      },
+      "data": {
+        "label": "Order Status"
+      },
+      "subBlocks": {
+        "systemPrompt": "You are an order tracking specialist. Provide customers with information about their order status. If no order number is provided, explain how they can find it and what information they need to provide for you to help them track their order. Be helpful and courteous.",
+        "context": "Customer request: %input%\nRequest category: %agent-1.content%",
+        "model": "gpt-4o",
+        "temperature": "0.5",
+        "maxTokens": "800"
+      }
+    },
+    {
+      "id": "agent-4",
+      "type": "agent",
+      "position": {
+        "x": 1000,
+        "y": 450
+      },
+      "data": {
+        "label": "Returns Processing"
+      },
+      "subBlocks": {
+        "systemPrompt": "You are a returns processing specialist. Provide customers with information about return and exchange policies and explain the return process. Be clear about timeframes, condition requirements, and how to initiate the return process. Aim to make the return process as smooth as possible.",
+        "context": "Customer request: %input%\nRequest category: %agent-1.content%",
+        "model": "gpt-4o",
+        "temperature": "0.5",
+        "maxTokens": "800"
+      }
+    },
+    {
+      "id": "function-1",
+      "type": "function",
+      "position": {
+        "x": 1300,
+        "y": 300
+      },
+      "data": {
+        "label": "Format Response"
+      },
+      "subBlocks": {
+        "code": "function processData(input) {\n  // Get the response\n  const response = input.content || 'No response received';\n  const category = input.category || 'Category not determined';\n  \n  // Get current date for the ticket\n  const currentDate = new Date();\n  const ticketId = 'TKT-' + Math.floor(Math.random() * 10000) + '-' + currentDate.getFullYear();\n  \n  // Format the response\n  const formattedResponse = `\n    Customer Service Response\n    ------------------------\n    Ticket ID: ${ticketId}\n    Category: ${category}\n    Date: ${currentDate.toLocaleDateString()}\n    \n    ${response}\n    \n    If you have any further questions, please don't hesitate to contact us.\n    Customer Service Team\n  `;\n  \n  return {\n    formattedResponse,\n    category,\n    ticketId,\n    timestamp: currentDate.toISOString(),\n    metadata: {\n      responseTime: new Date().getTime() - currentDate.getTime(),\n      department: getDepartmentFromCategory(category)\n    }\n  };\n}\n\n// Helper function to determine department\nfunction getDepartmentFromCategory(category) {\n  if (category.toLowerCase().includes('technical') || category.toLowerCase().includes('tech')) {\n    return 'Technical Support';\n  } else if (category.toLowerCase().includes('order') || category.toLowerCase().includes('status')) {\n    return 'Order Management';\n  } else if (category.toLowerCase().includes('return') || category.toLowerCase().includes('refund')) {\n    return 'Returns Department';\n  } else {\n    return 'General Customer Service';\n  }\n}"
+      }
+    },
+    {
+      "id": "output-1",
+      "type": "function",
+      "position": {
+        "x": 1600,
+        "y": 300
+      },
+      "data": {
+        "label": "Customer Response"
+      },
+      "subBlocks": {
+        "code": "function processData(input) {\n  // Simply return the input as the final output\n  return input;\n}"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-1",
+      "source": "starter-1",
+      "target": "agent-1",
+      "sourceHandle": "output",
+      "targetHandle": "input",
+      "type": "default",
+      "animated": true,
+      "style": { "stroke": "#3b82f6" }
+    },
+    {
+      "id": "edge-2",
+      "source": "agent-1",
+      "target": "router-1",
+      "sourceHandle": "output",
+      "targetHandle": "input",
+      "type": "default",
+      "animated": true,
+      "style": { "stroke": "#3b82f6" }
+    },
+    {
+      "id": "edge-3",
+      "source": "router-1",
+      "target": "agent-2",
+      "sourceHandle": "output-1",
+      "targetHandle": "input",
+      "type": "custom",
+      "data": {
+        "label": "Technical"
+      },
+      "animated": true,
+      "style": { "stroke": "#10b981" }
+    },
+    {
+      "id": "edge-4",
+      "source": "router-1",
+      "target": "agent-3",
+      "sourceHandle": "output-2",
+      "targetHandle": "input",
+      "type": "custom",
+      "data": {
+        "label": "Orders"
+      },
+      "animated": true,
+      "style": { "stroke": "#f59e0b" }
+    },
+    {
+      "id": "edge-5",
+      "source": "router-1",
+      "target": "agent-4",
+      "sourceHandle": "output-3",
+      "targetHandle": "input",
+      "type": "custom",
+      "data": {
+        "label": "Returns"
+      },
+      "animated": true,
+      "style": { "stroke": "#ec4899" }
+    },
+    {
+      "id": "edge-6",
+      "source": "agent-2",
+      "target": "function-1",
+      "sourceHandle": "output",
+      "targetHandle": "input",
+      "type": "default",
+      "animated": true,
+      "style": { "stroke": "#10b981" }
+    },
+    {
+      "id": "edge-7",
+      "source": "agent-3",
+      "target": "function-1",
+      "sourceHandle": "output",
+      "targetHandle": "input",
+      "type": "default",
+      "animated": true,
+      "style": { "stroke": "#f59e0b" }
+    },
+    {
+      "id": "edge-8",
+      "source": "agent-4",
+      "target": "function-1",
+      "sourceHandle": "output",
+      "targetHandle": "input",
+      "type": "default",
+      "animated": true,
+      "style": { "stroke": "#ec4899" }
+    },
+    {
+      "id": "edge-9",
+      "source": "function-1",
+      "target": "output-1",
+      "sourceHandle": "output",
+      "targetHandle": "input",
+      "type": "default",
+      "animated": true,
+      "style": { "stroke": "#3b82f6" }
+    }
+  ]
+}

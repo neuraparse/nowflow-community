@@ -1,0 +1,167 @@
+{
+  "metadata": {
+    "name": "Veri Analiz Asistanı",
+    "description": "Veri kaynaklarından bilgi çıkaran, analiz eden ve raporlayan veri analiz workflow'u",
+    "category": "data-analysis",
+    "tags": ["veri analizi", "raporlama", "CSV", "veri çıkarımı"]
+  },
+  "blocks": [
+    {
+      "id": "starter-1",
+      "type": "starter",
+      "position": {
+        "x": 100,
+        "y": 300
+      },
+      "data": {
+        "label": "Veri Analiz Talebi"
+      },
+      "subBlocks": {
+        "startWorkflow": "manual"
+      }
+    },
+    {
+      "id": "file-1",
+      "type": "file",
+      "position": {
+        "x": 400,
+        "y": 300
+      },
+      "data": {
+        "label": "Veri Dosyası Yükleme"
+      },
+      "subBlocks": {
+        "inputMethod": "upload",
+        "fileUpload": {
+          "acceptedTypes": ".csv,.xlsx,.json,.txt"
+        }
+      }
+    },
+    {
+      "id": "csv_processor-1",
+      "type": "csv_processor",
+      "position": {
+        "x": 700,
+        "y": 300
+      },
+      "data": {
+        "label": "CSV İşleme"
+      },
+      "subBlocks": {
+        "operation": "analyze",
+        "delimiter": ",",
+        "hasHeader": true
+      }
+    },
+    {
+      "id": "function-1",
+      "type": "function",
+      "position": {
+        "x": 1000,
+        "y": 300
+      },
+      "data": {
+        "label": "Veri Ön İşleme"
+      },
+      "subBlocks": {
+        "code": "function processData(input) {\n  try {\n    // CSV verilerini al\n    const data = input.data || [];\n    \n    if (!data || data.length === 0) {\n      return {\n        success: false,\n        message: 'İşlenecek veri bulunamadı',\n        summary: {}\n      };\n    }\n    \n    // Veri özeti oluştur\n    const summary = {\n      rowCount: data.length,\n      columnCount: Object.keys(data[0] || {}).length,\n      columns: Object.keys(data[0] || {}),\n      sampleData: data.slice(0, 5),\n      missingValues: {}\n    };\n    \n    // Eksik değerleri kontrol et\n    summary.columns.forEach(column => {\n      const missingCount = data.filter(row => !row[column]).length;\n      summary.missingValues[column] = {\n        count: missingCount,\n        percentage: (missingCount / data.length * 100).toFixed(2) + '%'\n      };\n    });\n    \n    return {\n      success: true,\n      data: data,\n      summary: summary\n    };\n  } catch (error) {\n    return {\n      success: false,\n      message: 'Veri işleme hatası: ' + error.message,\n      error: error.toString()\n    };\n  }\n}"
+      }
+    },
+    {
+      "id": "agent-1",
+      "type": "agent",
+      "position": {
+        "x": 1300,
+        "y": 300
+      },
+      "data": {
+        "label": "Veri Analizi"
+      },
+      "subBlocks": {
+        "systemPrompt": "Sen bir veri analisti ve istatistik uzmanısın. Verilen veri setini analiz et ve şu bilgileri çıkar: 1) Temel istatistikler (ortalama, medyan, mod, standart sapma), 2) Veri kalitesi sorunları, 3) Önemli trendler ve korelasyonlar, 4) Veri seti hakkında önemli gözlemler.",
+        "context": "Veri özeti: %function-1.summary%\n\nKullanıcı talebi: %input%\n\nLütfen bu veri setini analiz et ve kapsamlı bir rapor oluştur.",
+        "model": "gpt-4o",
+        "temperature": "0.3"
+      }
+    },
+    {
+      "id": "function-2",
+      "type": "function",
+      "position": {
+        "x": 1600,
+        "y": 200
+      },
+      "data": {
+        "label": "Grafik Oluşturma"
+      },
+      "subBlocks": {
+        "code": "function processData(input) {\n  // Bu fonksiyon gerçek bir grafik oluşturmaz, ancak grafik oluşturma için gerekli verileri hazırlar\n  // Gerçek uygulamada, bu veri bir grafik kütüphanesine (Chart.js, D3.js vb.) beslenebilir\n  \n  try {\n    const analysisText = input.content || '';\n    const data = input.data || [];\n    \n    if (!data || data.length === 0) {\n      return {\n        success: false,\n        message: 'Grafik oluşturmak için veri bulunamadı'\n      };\n    }\n    \n    // Basit bir grafik konfigürasyonu oluştur\n    const chartConfig = {\n      type: 'bar', // varsayılan grafik türü\n      title: 'Veri Analizi Grafiği',\n      xAxis: {\n        title: 'Kategoriler',\n        categories: []\n      },\n      yAxis: {\n        title: 'Değerler'\n      },\n      series: []\n    };\n    \n    // Analiz metninden grafik türünü belirle\n    if (analysisText.includes('zaman serisi') || analysisText.includes('trend')) {\n      chartConfig.type = 'line';\n    } else if (analysisText.includes('dağılım') || analysisText.includes('korelasyon')) {\n      chartConfig.type = 'scatter';\n    } else if (analysisText.includes('karşılaştırma') || analysisText.includes('oran')) {\n      chartConfig.type = 'pie';\n    }\n    \n    return {\n      success: true,\n      chartConfig: chartConfig,\n      message: 'Grafik konfigürasyonu oluşturuldu'\n    };\n  } catch (error) {\n    return {\n      success: false,\n      message: 'Grafik oluşturma hatası: ' + error.message,\n      error: error.toString()\n    };\n  }\n}"
+      }
+    },
+    {
+      "id": "function-3",
+      "type": "function",
+      "position": {
+        "x": 1600,
+        "y": 400
+      },
+      "data": {
+        "label": "Rapor Oluşturma"
+      },
+      "subBlocks": {
+        "code": "function processData(input) {\n  try {\n    const analysis = input.content || 'Analiz sonucu bulunamadı';\n    const summary = input.summary || {};\n    const chartConfig = input.chartConfig || { type: 'bar' };\n    \n    // Rapor formatını oluştur\n    const report = {\n      title: 'Veri Analiz Raporu',\n      date: new Date().toLocaleDateString('tr-TR'),\n      summary: {\n        rowCount: summary.rowCount || 0,\n        columnCount: summary.columnCount || 0,\n        columns: summary.columns || []\n      },\n      analysis: analysis,\n      charts: [chartConfig],\n      conclusions: extractConclusions(analysis),\n      recommendations: generateRecommendations(analysis)\n    };\n    \n    return {\n      success: true,\n      report: report,\n      formattedReport: formatReport(report)\n    };\n  } catch (error) {\n    return {\n      success: false,\n      message: 'Rapor oluşturma hatası: ' + error.message,\n      error: error.toString()\n    };\n  }\n}\n\n// Analizden sonuçları çıkar\nfunction extractConclusions(analysis) {\n  // Gerçek uygulamada, bu fonksiyon NLP kullanarak analizden sonuçları çıkarabilir\n  // Basit bir örnek olarak, 'sonuç' kelimesini içeren cümleleri alıyoruz\n  const conclusions = [];\n  \n  if (typeof analysis === 'string') {\n    const sentences = analysis.split(/\\.\\s+/);\n    for (const sentence of sentences) {\n      if (sentence.toLowerCase().includes('sonuç') || \n          sentence.toLowerCase().includes('önemli') ||\n          sentence.toLowerCase().includes('dikkat çekici')) {\n        conclusions.push(sentence.trim() + '.');\n      }\n    }\n  }\n  \n  return conclusions.length > 0 ? conclusions : ['Belirgin sonuç bulunamadı.'];\n}\n\n// Öneriler oluştur\nfunction generateRecommendations(analysis) {\n  // Gerçek uygulamada, bu fonksiyon analiz sonuçlarına göre öneriler oluşturabilir\n  // Basit bir örnek olarak, 'öneri' kelimesini içeren cümleleri alıyoruz\n  const recommendations = [];\n  \n  if (typeof analysis === 'string') {\n    const sentences = analysis.split(/\\.\\s+/);\n    for (const sentence of sentences) {\n      if (sentence.toLowerCase().includes('öner') || \n          sentence.toLowerCase().includes('tavsiye') ||\n          sentence.toLowerCase().includes('geliştirilmeli')) {\n        recommendations.push(sentence.trim() + '.');\n      }\n    }\n  }\n  \n  return recommendations.length > 0 ? recommendations : ['Özel öneri bulunamadı.'];\n}\n\n// Raporu formatla\nfunction formatReport(report) {\n  // Markdown formatında rapor oluştur\n  let markdown = `# ${report.title}\\n\\n`;\n  markdown += `Tarih: ${report.date}\\n\\n`;\n  \n  markdown += `## Veri Özeti\\n\\n`;\n  markdown += `- Satır Sayısı: ${report.summary.rowCount}\\n`;\n  markdown += `- Sütun Sayısı: ${report.summary.columnCount}\\n`;\n  markdown += `- Sütunlar: ${report.summary.columns.join(', ')}\\n\\n`;\n  \n  markdown += `## Analiz\\n\\n${report.analysis}\\n\\n`;\n  \n  markdown += `## Sonuçlar\\n\\n`;\n  for (const conclusion of report.conclusions) {\n    markdown += `- ${conclusion}\\n`;\n  }\n  markdown += '\\n';\n  \n  markdown += `## Öneriler\\n\\n`;\n  for (const recommendation of report.recommendations) {\n    markdown += `- ${recommendation}\\n`;\n  }\n  \n  return markdown;\n}"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-1",
+      "source": "starter-1",
+      "target": "file-1",
+      "sourceHandle": "output",
+      "targetHandle": "input"
+    },
+    {
+      "id": "edge-2",
+      "source": "file-1",
+      "target": "csv_processor-1",
+      "sourceHandle": "output",
+      "targetHandle": "input"
+    },
+    {
+      "id": "edge-3",
+      "source": "csv_processor-1",
+      "target": "function-1",
+      "sourceHandle": "output",
+      "targetHandle": "input"
+    },
+    {
+      "id": "edge-4",
+      "source": "function-1",
+      "target": "agent-1",
+      "sourceHandle": "output",
+      "targetHandle": "input"
+    },
+    {
+      "id": "edge-5",
+      "source": "agent-1",
+      "target": "function-2",
+      "sourceHandle": "output",
+      "targetHandle": "input"
+    },
+    {
+      "id": "edge-6",
+      "source": "agent-1",
+      "target": "function-3",
+      "sourceHandle": "output",
+      "targetHandle": "input"
+    },
+    {
+      "id": "edge-7",
+      "source": "function-2",
+      "target": "function-3",
+      "sourceHandle": "output",
+      "targetHandle": "input"
+    }
+  ]
+}

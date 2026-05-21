@@ -1,0 +1,125 @@
+import { PostHogIcon } from '@/components/icons'
+import { createOperationDropdown, createSimpleToolConfig, defineBlock } from '../helpers'
+
+export const PostHogBlock = defineBlock({
+  type: 'posthog',
+  name: 'PostHog',
+  description: 'Open-source product analytics, session recording, feature flags, and A/B testing.',
+  longDescription:
+    'Integrate with PostHog for comprehensive product analytics including user behavior tracking, session recordings, feature flags, A/B experiments, and surveys. PostHog is an all-in-one, open-source platform that helps you build better products by providing deep insights into user behavior, with self-hosted or cloud options.',
+  category: 'tools',
+  bgColor: '#F54E00',
+  icon: PostHogIcon,
+  subBlocks: [
+    {
+      id: 'credential',
+      title: 'PostHog API Key',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: 'Enter your PostHog personal API key',
+      password: true,
+    },
+    {
+      id: 'projectApiKey',
+      title: 'Project API Key',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: 'Enter your PostHog project API key',
+      password: true,
+    },
+    {
+      id: 'host',
+      title: 'PostHog Host URL',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: 'https://app.posthog.com (or your self-hosted URL)',
+    },
+    createOperationDropdown({
+      operations: [
+        { id: 'capture_event', label: 'Capture Event' },
+        { id: 'identify_user', label: 'Identify User' },
+        { id: 'get_feature_flag', label: 'Get Feature Flag' },
+        { id: 'list_feature_flags', label: 'List Feature Flags' },
+        { id: 'create_feature_flag', label: 'Create Feature Flag' },
+        { id: 'get_insights', label: 'Get Insights' },
+        { id: 'list_persons', label: 'List Persons' },
+      ],
+      defaultValue: 'capture_event',
+    }),
+    {
+      id: 'distinctId',
+      title: 'Distinct ID',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: 'user123',
+      condition: {
+        field: 'operation',
+        value: ['capture_event', 'identify_user', 'get_feature_flag'],
+      },
+    },
+    {
+      id: 'event',
+      title: 'Event Name',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: 'button_clicked',
+      condition: { field: 'operation', value: 'capture_event' },
+    },
+    {
+      id: 'properties',
+      title: 'Properties (JSON)',
+      type: 'code',
+      layout: 'full',
+      language: 'json',
+      placeholder: '{"button": "submit", "$set": {"email": "user@example.com"}}',
+      condition: { field: 'operation', value: ['capture_event', 'identify_user'] },
+    },
+    {
+      id: 'featureFlagKey',
+      title: 'Feature Flag Key',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: 'new-feature-enabled',
+      condition: { field: 'operation', value: ['get_feature_flag', 'create_feature_flag'] },
+    },
+    {
+      id: 'flagName',
+      title: 'Flag Name',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: 'New Feature',
+      condition: { field: 'operation', value: 'create_feature_flag' },
+    },
+    {
+      id: 'rolloutPercentage',
+      title: 'Rollout Percentage',
+      type: 'short-input',
+      layout: 'half',
+      placeholder: '100',
+      condition: { field: 'operation', value: 'create_feature_flag' },
+    },
+  ],
+  tools: {
+    access: ['posthog_api'],
+    config: createSimpleToolConfig('posthog_api'),
+  },
+  inputs: {
+    credential: { type: 'string', required: true },
+    projectApiKey: { type: 'string', required: false },
+    host: { type: 'string', required: false },
+    operation: { type: 'string', required: true },
+    distinctId: { type: 'string', required: false },
+    event: { type: 'string', required: false },
+    properties: { type: 'json', required: false },
+    featureFlagKey: { type: 'string', required: false },
+    flagName: { type: 'string', required: false },
+    rolloutPercentage: { type: 'number', required: false },
+  },
+  outputs: {
+    response: {
+      type: {
+        data: 'json',
+      },
+    },
+  },
+})

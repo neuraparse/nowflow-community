@@ -1,0 +1,59 @@
+import { headers } from 'next/headers'
+import { NextRequest, NextResponse } from 'next/server'
+import { eq, isNull } from 'drizzle-orm'
+import { getLatencyMetrics } from '@/lib/analytics/analytics-service'
+import { auth } from '@/lib/auth'
+import { createLogger } from '@/lib/logs/console-logger'
+import { db } from '@/db'
+import { workflow } from '@/db/schema'
+
+const logger = createLogger('LatencyAnalyticsAPI')
+
+/**
+ * GET /api/analytics/latency
+ * Get latency percentiles and histogram
+ */
+export async function GET(request: NextRequest) {
+  try {
+    const session = await auth.api.getSession({ headers: await headers() })
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { searchParams } = new URL(request.url)
+    const workflowId = searchParams.get('workflowId')
+    const startDate = searchParams.get('startDate')
+      ? new Date(searchParams.get('startDate')!)
+      : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+    const endDate = searchParams.get('endDate')
+      ? new Date(searchParams.get('endDate')!)
+      : new Date()
+
+    if (!workflowId) {
+      return NextResponse.json({ error: 'workflowId is required' }, { status: 400 })
+    }
+
+    // Verify ownership
+    const [wf] = await db
+      .select({ id: workflow.id })
+      .from(workflow)
+      .where(eq(workflow.id, workflowId))
+      .limit(1)
+
+    if (!wf) {
+      return NextResponse.json({ error: 'Workflow not found' }, { status: 404 })
+    }
+
+    const metrics = await getLatencyMetrics(workflowId, startDate, endDate)
+
+    return NextResponse.json(
+      { success: true, data: metrics },
+      {
+        headers: { 'Cache-Control': 'private, max-age=300' },
+      }
+    )
+  } catch (error) {
+    logger.error('Failed to get latency metrics', { error })
+    return NextResponse.json({ error: 'Failed to get latency metrics' }, { status: 500 })
+  }
+}

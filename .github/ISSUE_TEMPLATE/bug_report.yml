@@ -1,0 +1,35 @@
+name: Bug report
+description: Report a reproducible problem in NowFlow Community.
+title: '[Bug]: '
+labels: ['bug']
+body:
+  - type: markdown
+    attributes:
+      value: 'Thanks for helping improve NowFlow Community. Do not include secrets, tokens, customer data, production URLs, or staging URLs.'
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Describe the bug and the behavior you expected.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Start the app
+        2. Open ...
+        3. Click ...
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      placeholder: 'commit SHA or release tag'
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      render: shell

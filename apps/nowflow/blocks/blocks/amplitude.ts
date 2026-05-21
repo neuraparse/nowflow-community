@@ -1,0 +1,122 @@
+import { AmplitudeIcon } from '@/components/icons'
+import { createOperationDropdown, createSimpleToolConfig, defineBlock } from '../helpers'
+
+export const AmplitudeBlock = defineBlock({
+  type: 'amplitude',
+  name: 'Amplitude',
+  description: 'Product analytics platform for understanding user behavior and driving growth.',
+  longDescription:
+    'Integrate with Amplitude to analyze user behavior, build data-driven product experiences, and drive business growth. Amplitude provides powerful product analytics with behavioral cohorts, funnels, retention analysis, and real-time insights to help you understand what makes users engage, convert, and retain.',
+  category: 'tools',
+  bgColor: '#0066FF',
+  icon: AmplitudeIcon,
+  subBlocks: [
+    {
+      id: 'credential',
+      title: 'Amplitude API Key',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: 'Enter your Amplitude API key',
+      password: true,
+    },
+    {
+      id: 'secretKey',
+      title: 'Secret Key',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: 'Enter your Amplitude secret key',
+      password: true,
+    },
+    createOperationDropdown({
+      operations: [
+        { id: 'send_event', label: 'Send Event' },
+        { id: 'identify_user', label: 'Identify User' },
+        { id: 'export_data', label: 'Export Data' },
+        { id: 'get_cohorts', label: 'Get Cohorts' },
+        { id: 'dashboard_query', label: 'Dashboard Query' },
+      ],
+      defaultValue: 'send_event',
+    }),
+    {
+      id: 'userId',
+      title: 'User ID',
+      type: 'short-input',
+      layout: 'half',
+      placeholder: 'user123',
+      condition: { field: 'operation', value: ['send_event', 'identify_user'] },
+    },
+    {
+      id: 'deviceId',
+      title: 'Device ID (Optional)',
+      type: 'short-input',
+      layout: 'half',
+      placeholder: 'device123',
+      condition: { field: 'operation', value: ['send_event', 'identify_user'] },
+    },
+    {
+      id: 'eventType',
+      title: 'Event Type',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: 'Button Clicked',
+      condition: { field: 'operation', value: 'send_event' },
+    },
+    {
+      id: 'eventProperties',
+      title: 'Event Properties (JSON)',
+      type: 'code',
+      layout: 'full',
+      language: 'json',
+      placeholder: '{"button_name": "Submit", "page": "Checkout"}',
+      condition: { field: 'operation', value: 'send_event' },
+    },
+    {
+      id: 'userProperties',
+      title: 'User Properties (JSON)',
+      type: 'code',
+      layout: 'full',
+      language: 'json',
+      placeholder: '{"plan": "premium", "email": "user@example.com"}',
+      condition: { field: 'operation', value: 'identify_user' },
+    },
+    {
+      id: 'startDate',
+      title: 'Start Date',
+      type: 'short-input',
+      layout: 'half',
+      placeholder: 'YYYYMMDD',
+      condition: { field: 'operation', value: 'export_data' },
+    },
+    {
+      id: 'endDate',
+      title: 'End Date',
+      type: 'short-input',
+      layout: 'half',
+      placeholder: 'YYYYMMDD',
+      condition: { field: 'operation', value: 'export_data' },
+    },
+  ],
+  tools: {
+    access: ['amplitude_api'],
+    config: createSimpleToolConfig('amplitude_api'),
+  },
+  inputs: {
+    credential: { type: 'string', required: true },
+    secretKey: { type: 'string', required: false },
+    operation: { type: 'string', required: true },
+    userId: { type: 'string', required: false },
+    deviceId: { type: 'string', required: false },
+    eventType: { type: 'string', required: false },
+    eventProperties: { type: 'json', required: false },
+    userProperties: { type: 'json', required: false },
+    startDate: { type: 'string', required: false },
+    endDate: { type: 'string', required: false },
+  },
+  outputs: {
+    response: {
+      type: {
+        data: 'json',
+      },
+    },
+  },
+})

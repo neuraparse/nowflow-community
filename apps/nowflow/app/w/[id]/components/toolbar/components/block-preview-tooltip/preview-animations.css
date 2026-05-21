@@ -1,0 +1,74 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   Block Preview Tooltip — Scoped CSS Animations (lightweight)
+   All keyframes use the `bpt-` prefix to avoid global collisions.
+   Only opacity + transform animations — no filter/drop-shadow for perf.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@keyframes bpt-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(-6px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes bpt-flow-dash {
+  from {
+    stroke-dashoffset: 14;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Block glow — opacity-only pulse, no filter */
+@keyframes bpt-process-glow {
+  0%,
+  100% {
+    opacity: 0.88;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Particle fade synced with animateMotion — opacity only */
+@keyframes bpt-particle-fade {
+  0% {
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.85;
+  }
+  85% {
+    opacity: 0.85;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Handle dot pulse — opacity only */
+@keyframes bpt-handle-pulse {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Edge glow — stroke-opacity only */
+@keyframes bpt-edge-glow-pulse {
+  0%,
+  100% {
+    stroke-opacity: 0.05;
+  }
+  50% {
+    stroke-opacity: 0.14;
+  }
+}

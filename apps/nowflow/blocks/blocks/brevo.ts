@@ -1,0 +1,127 @@
+import { BrevoIcon } from '@/components/icons'
+import { createOperationDropdown, createParamTransformer, defineBlock } from '../helpers'
+
+export const BrevoBlock = defineBlock({
+  type: 'brevo',
+  name: 'Brevo',
+  description: 'Multi-channel marketing platform (formerly Sendinblue)',
+  longDescription:
+    'Integrate with Brevo for email marketing, SMS, WhatsApp, chat, and marketing automation. Send transactional emails, manage contacts, create campaigns, and automate customer journeys with API key authentication.',
+  category: 'tools',
+  bgColor: '#0092FF',
+  icon: BrevoIcon,
+  subBlocks: [
+    {
+      id: 'credential',
+      title: 'Brevo API Key',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: 'Enter your Brevo API key',
+    },
+    createOperationDropdown({
+      operations: [
+        { id: 'send_transactional_email', label: 'Send Transactional Email' },
+        { id: 'send_sms', label: 'Send SMS' },
+        { id: 'create_contact', label: 'Create Contact' },
+        { id: 'get_contact', label: 'Get Contact' },
+        { id: 'list_contacts', label: 'List Contacts' },
+        { id: 'update_contact', label: 'Update Contact' },
+        { id: 'create_campaign', label: 'Create Email Campaign' },
+        { id: 'list_campaigns', label: 'List Campaigns' },
+        { id: 'send_campaign', label: 'Send Campaign' },
+        { id: 'get_account', label: 'Get Account Info' },
+      ],
+      defaultValue: 'list_contacts',
+    }),
+    {
+      id: 'to',
+      title: 'To Email',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: 'recipient@example.com',
+      condition: { field: 'operation', value: 'send_transactional_email' },
+    },
+    {
+      id: 'subject',
+      title: 'Email Subject',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: 'Your order confirmation',
+      condition: { field: 'operation', value: 'send_transactional_email' },
+    },
+    {
+      id: 'htmlContent',
+      title: 'HTML Content',
+      type: 'long-input',
+      layout: 'full',
+      placeholder: '<html><body>Email content</body></html>',
+      condition: { field: 'operation', value: 'send_transactional_email' },
+    },
+    {
+      id: 'recipient',
+      title: 'SMS Recipient',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: '+1234567890',
+      condition: { field: 'operation', value: 'send_sms' },
+    },
+    {
+      id: 'content',
+      title: 'SMS Content',
+      type: 'long-input',
+      layout: 'full',
+      placeholder: 'Your SMS message',
+      condition: { field: 'operation', value: 'send_sms' },
+    },
+    {
+      id: 'email',
+      title: 'Contact Email',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: 'contact@example.com',
+      condition: { field: 'operation', value: ['create_contact', 'get_contact', 'update_contact'] },
+    },
+    {
+      id: 'attributes',
+      title: 'Contact Attributes (JSON)',
+      type: 'long-input',
+      layout: 'full',
+      placeholder: '{"FIRSTNAME": "John", "LASTNAME": "Doe"}',
+      condition: { field: 'operation', value: ['create_contact', 'update_contact'] },
+    },
+    {
+      id: 'campaignId',
+      title: 'Campaign ID',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: 'Enter campaign ID',
+      condition: { field: 'operation', value: 'send_campaign' },
+    },
+  ],
+  tools: {
+    access: ['brevo_api'],
+    config: {
+      tool: () => 'brevo_api',
+      params: createParamTransformer({ attributes: 'json' }),
+    },
+  },
+  inputs: {
+    credential: { type: 'string', required: true },
+    operation: { type: 'string', required: true },
+    to: { type: 'string', required: false },
+    subject: { type: 'string', required: false },
+    htmlContent: { type: 'string', required: false },
+    recipient: { type: 'string', required: false },
+    content: { type: 'string', required: false },
+    email: { type: 'string', required: false },
+    attributes: { type: 'string', required: false },
+    campaignId: { type: 'string', required: false },
+  },
+  outputs: {
+    response: {
+      type: {
+        data: 'json',
+      },
+    },
+  },
+})

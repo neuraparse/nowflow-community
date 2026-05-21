@@ -1,0 +1,352 @@
+/* Hero section animations */
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes float-slow {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(15px, -10px);
+  }
+}
+
+@keyframes float-medium {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(-18px, 14px);
+  }
+}
+
+/* Radial dot background pattern */
+@keyframes dot-fade {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.5s ease-out forwards;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.5s ease-out 0.15s forwards;
+  opacity: 0;
+}
+
+.hero-orb-1 {
+  animation: float-slow 14s ease-in-out infinite;
+  will-change: transform;
+}
+
+.hero-orb-2 {
+  animation: float-medium 18s ease-in-out infinite;
+  will-change: transform;
+}
+
+/* Radial dot pattern */
+.hero-dot-pattern {
+  background-image: radial-gradient(circle, currentColor 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* Shine/shimmer effect */
+@keyframes shine {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.hero-canvas-shine::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.03) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shine 8s ease-in-out infinite;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+.hero-canvas-shell {
+  border-radius: 0 !important;
+}
+
+.hero-canvas-navbar {
+  border-radius: 0 !important;
+}
+
+.hero-canvas-navbar-chip {
+  border-radius: 0 !important;
+}
+
+/* Rotating gradient border for badge */
+@keyframes badge-rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.hero-badge-wrapper {
+  overflow: hidden;
+}
+
+.hero-badge-border {
+  background: conic-gradient(
+    from 0deg,
+    transparent 0%,
+    #4a7a68 25%,
+    transparent 50%,
+    #3b82f6 75%,
+    transparent 100%
+  );
+  animation: badge-rotate 4s linear infinite;
+  transform-origin: center;
+  scale: 1.5;
+}
+
+/* ═══ Animated flowing hero lines ═══ */
+@keyframes line-draw {
+  0% {
+    stroke-dashoffset: 1;
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  50% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    stroke-dashoffset: -1;
+    opacity: 0;
+  }
+}
+
+@keyframes line-drift {
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-12px);
+  }
+}
+
+@keyframes line-drift-reverse {
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(10px);
+  }
+}
+
+.hero-line {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  opacity: 0;
+  will-change: stroke-dashoffset, opacity;
+}
+
+.hero-line-1 {
+  animation:
+    line-draw 8s ease-in-out infinite,
+    line-drift 14s ease-in-out infinite;
+  stroke-opacity: 0.25;
+}
+
+.hero-line-2 {
+  animation:
+    line-draw 10s ease-in-out 1.5s infinite,
+    line-drift-reverse 16s ease-in-out infinite;
+  stroke-opacity: 0.18;
+}
+
+.hero-line-3 {
+  animation:
+    line-draw 9s ease-in-out 3s infinite,
+    line-drift 18s ease-in-out infinite;
+  stroke-opacity: 0.14;
+}
+
+.hero-line-4 {
+  animation:
+    line-draw 11s ease-in-out 0.5s infinite,
+    line-drift-reverse 20s ease-in-out infinite;
+  stroke-opacity: 0.12;
+}
+
+.hero-line-5 {
+  animation:
+    line-draw 7s ease-in-out 2s infinite,
+    line-drift 22s ease-in-out infinite;
+  stroke-opacity: 0.16;
+}
+
+.hero-line-6 {
+  animation:
+    line-draw 12s ease-in-out 4s infinite,
+    line-drift-reverse 15s ease-in-out infinite;
+  stroke-opacity: 0.1;
+}
+
+/* Light mode — lines are darker green */
+.hero-line {
+  filter: none;
+}
+
+/* Dark mode — lines glow subtly */
+:is(.dark, .dark *) .hero-line {
+  filter: drop-shadow(0 0 6px currentColor);
+}
+
+/* Cursor floating animations for collaboration section */
+@keyframes cursor-float-1 {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  25% {
+    transform: translate(30px, -15px);
+  }
+  50% {
+    transform: translate(15px, 10px);
+  }
+  75% {
+    transform: translate(-10px, -5px);
+  }
+}
+
+@keyframes cursor-float-2 {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  25% {
+    transform: translate(-20px, 10px);
+  }
+  50% {
+    transform: translate(10px, 20px);
+  }
+  75% {
+    transform: translate(25px, -10px);
+  }
+}
+
+.cursor-animate-1 {
+  animation: cursor-float-1 12s ease-in-out infinite;
+}
+
+.cursor-animate-2 {
+  animation: cursor-float-2 15s ease-in-out infinite;
+}
+
+/* Marquee animation for enterprise feature strip */
+@keyframes marquee-scroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.marquee-animate {
+  animation: marquee-scroll 25s linear infinite;
+}
+
+/* Stagger animation for children */
+.stagger-fade-in > * {
+  opacity: 0;
+  animation: fade-in-up 0.5s ease-out forwards;
+}
+.stagger-fade-in > *:nth-child(1) {
+  animation-delay: 0ms;
+}
+.stagger-fade-in > *:nth-child(2) {
+  animation-delay: 80ms;
+}
+.stagger-fade-in > *:nth-child(3) {
+  animation-delay: 160ms;
+}
+.stagger-fade-in > *:nth-child(4) {
+  animation-delay: 240ms;
+}
+.stagger-fade-in > *:nth-child(5) {
+  animation-delay: 320ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-line {
+    animation: none !important;
+    opacity: 0.12;
+    stroke-dashoffset: 0;
+  }
+
+  .hero-orb-1,
+  .hero-orb-2,
+  .cursor-animate-1,
+  .cursor-animate-2,
+  .marquee-animate,
+  .animate-fade-in-up,
+  .animate-fade-in {
+    animation: none !important;
+    opacity: 1;
+    transform: none;
+    will-change: auto;
+  }
+
+  .stagger-fade-in > * {
+    animation: none !important;
+    opacity: 1;
+  }
+
+  .hero-badge-border {
+    animation: none !important;
+    background: conic-gradient(from 90deg, transparent 0%, #4a7a6840 50%, transparent 100%);
+    scale: 1.5;
+  }
+}

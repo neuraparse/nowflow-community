@@ -1,0 +1,263 @@
+{
+  "metadata": {
+    "name": "Eğitim Asistanı",
+    "description": "Öğrencilere ders konularında yardımcı olan ve öğrenme materyalleri oluşturan eğitim asistanı workflow'u",
+    "category": "education",
+    "tags": ["eğitim", "öğrenme", "ders", "öğretim"]
+  },
+  "blocks": [
+    {
+      "id": "starter-1",
+      "type": "starter",
+      "position": {
+        "x": 100,
+        "y": 300
+      },
+      "data": {
+        "label": "Eğitim Talebi"
+      },
+      "subBlocks": {
+        "startWorkflow": "manual"
+      }
+    },
+    {
+      "id": "agent-1",
+      "type": "agent",
+      "position": {
+        "x": 400,
+        "y": 300
+      },
+      "data": {
+        "label": "Konu Analizi"
+      },
+      "subBlocks": {
+        "systemPrompt": "Sen bir eğitim uzmanısın. Öğrencinin talebini analiz et ve şu bilgileri çıkar: 1) Ders konusu (matematik, fizik, tarih vb.), 2) Zorluk seviyesi (ilkokul, ortaokul, lise, üniversite), 3) Talep türü (konu açıklama, soru çözme, özet çıkarma, test hazırlama). Bu bilgileri JSON formatında döndür.",
+        "context": "%input%",
+        "model": "gpt-4o",
+        "temperature": "0.4"
+      }
+    },
+    {
+      "id": "function-1",
+      "type": "function",
+      "position": {
+        "x": 700,
+        "y": 300
+      },
+      "data": {
+        "label": "Talep Türü Belirleme"
+      },
+      "subBlocks": {
+        "code": "function processData(input) {\n  try {\n    // Agent yanıtını parse et\n    let requestAnalysis;\n    if (typeof input.content === 'string') {\n      // JSON string ise parse et\n      try {\n        requestAnalysis = JSON.parse(input.content);\n      } catch (e) {\n        // JSON parse edilemezse metin olarak kullan\n        requestAnalysis = {\n          dersKonusu: 'Genel',\n          zorlukSeviyesi: 'Orta',\n          talepTuru: 'konu-aciklama'\n        };\n      }\n    } else {\n      requestAnalysis = input.content;\n    }\n    \n    // Talep türünü belirle\n    const requestType = requestAnalysis.talepTuru || requestAnalysis.talepTürü || 'konu-aciklama';\n    \n    return {\n      requestType: requestType.toLowerCase().replace(' ', '-'),\n      subject: requestAnalysis.dersKonusu || requestAnalysis.konu || 'Genel',\n      level: requestAnalysis.zorlukSeviyesi || requestAnalysis.seviye || 'Orta',\n      analysis: requestAnalysis\n    };\n  } catch (error) {\n    return {\n      requestType: 'konu-aciklama',\n      subject: 'Genel',\n      level: 'Orta',\n      analysis: {\n        dersKonusu: 'Genel',\n        zorlukSeviyesi: 'Orta',\n        talepTuru: 'konu-aciklama'\n      },\n      error: error.message\n    };\n  }\n}"
+      }
+    },
+    {
+      "id": "condition-1",
+      "type": "condition",
+      "position": {
+        "x": 1000,
+        "y": 300
+      },
+      "data": {
+        "label": "Talep Türü Yönlendirme"
+      },
+      "subBlocks": {
+        "conditions": [
+          {
+            "id": "konu",
+            "expression": "input.requestType === 'konu-aciklama' || input.requestType === 'konu-açıklama'",
+            "description": "Konu açıklama talebi"
+          },
+          {
+            "id": "soru",
+            "expression": "input.requestType === 'soru-cozme' || input.requestType === 'soru-çözme'",
+            "description": "Soru çözme talebi"
+          },
+          {
+            "id": "ozet",
+            "expression": "input.requestType === 'ozet' || input.requestType === 'özet'",
+            "description": "Özet çıkarma talebi"
+          },
+          {
+            "id": "test",
+            "expression": "input.requestType === 'test' || input.requestType === 'quiz'",
+            "description": "Test hazırlama talebi"
+          },
+          {
+            "id": "default",
+            "expression": "true",
+            "description": "Varsayılan eğitim talebi"
+          }
+        ]
+      }
+    },
+    {
+      "id": "agent-2",
+      "type": "agent",
+      "position": {
+        "x": 1300,
+        "y": 150
+      },
+      "data": {
+        "label": "Konu Açıklama"
+      },
+      "subBlocks": {
+        "systemPrompt": "Sen bir eğitim uzmanısın. Belirtilen konuyu öğrencinin seviyesine uygun şekilde açıkla. Konuyu anlaşılır bir dille anlat, örnekler ver ve görselleştirmeler için öneriler sun. Adım adım açıklamalar yap ve önemli kavramları vurgula.",
+        "context": "Talep analizi: %function-1.analysis%\n\nKonu: %function-1.subject%\nSeviye: %function-1.level%\n\nLütfen bu konuyu detaylı ve anlaşılır bir şekilde açıkla.",
+        "model": "gpt-4o",
+        "temperature": "0.7"
+      }
+    },
+    {
+      "id": "agent-3",
+      "type": "agent",
+      "position": {
+        "x": 1300,
+        "y": 300
+      },
+      "data": {
+        "label": "Soru Çözme"
+      },
+      "subBlocks": {
+        "systemPrompt": "Sen bir eğitim uzmanısın. Öğrencinin sorduğu soruyu adım adım çöz. Her adımı açıkla, formülleri ve kavramları belirt. Çözümün anlaşılır olmasına dikkat et ve benzer sorular için ipuçları ver.",
+        "context": "Talep analizi: %function-1.analysis%\n\nKonu: %function-1.subject%\nSeviye: %function-1.level%\nSoru: %input%\n\nLütfen bu soruyu adım adım çöz.",
+        "model": "gpt-4o",
+        "temperature": "0.5"
+      }
+    },
+    {
+      "id": "agent-4",
+      "type": "agent",
+      "position": {
+        "x": 1300,
+        "y": 450
+      },
+      "data": {
+        "label": "Özet Çıkarma"
+      },
+      "subBlocks": {
+        "systemPrompt": "Sen bir eğitim uzmanısın. Verilen konunun özet ve ana hatlarını çıkar. Önemli kavramları, tarihleri, formülleri ve ilişkileri belirt. Özeti maddeler halinde ve anlaşılır bir şekilde hazırla.",
+        "context": "Talep analizi: %function-1.analysis%\n\nKonu: %function-1.subject%\nSeviye: %function-1.level%\nİçerik: %input%\n\nLütfen bu konunun özetini çıkar.",
+        "model": "gpt-4o",
+        "temperature": "0.5"
+      }
+    },
+    {
+      "id": "agent-5",
+      "type": "agent",
+      "position": {
+        "x": 1300,
+        "y": 600
+      },
+      "data": {
+        "label": "Test Hazırlama"
+      },
+      "subBlocks": {
+        "systemPrompt": "Sen bir eğitim uzmanısın. Belirtilen konu ve seviyeye uygun test soruları hazırla. Çoktan seçmeli, doğru/yanlış ve açık uçlu sorular içeren bir test oluştur. Her sorunun cevabını ve açıklamasını da ekle.",
+        "context": "Talep analizi: %function-1.analysis%\n\nKonu: %function-1.subject%\nSeviye: %function-1.level%\n\nLütfen bu konu için bir test hazırla.",
+        "model": "gpt-4o",
+        "temperature": "0.7"
+      }
+    },
+    {
+      "id": "function-2",
+      "type": "function",
+      "position": {
+        "x": 1600,
+        "y": 300
+      },
+      "data": {
+        "label": "Eğitim İçeriği Formatla"
+      },
+      "subBlocks": {
+        "code": "function processData(input) {\n  // Gelen yanıtı al\n  const content = input.content || 'İçerik oluşturulamadı';\n  const subject = input.subject || 'Genel Konu';\n  const level = input.level || 'Orta Seviye';\n  \n  // İçerik türünü belirle\n  let contentType = 'Konu Açıklaması';\n  if (content.includes('Soru') && content.includes('Çözüm')) {\n    contentType = 'Soru Çözümü';\n  } else if (content.includes('Özet') || content.includes('Ana Hatlar')) {\n    contentType = 'Konu Özeti';\n  } else if (content.includes('Test') || content.includes('Quiz') || content.includes('Soru 1')) {\n    contentType = 'Test';\n  }\n  \n  // Ek kaynaklar öner\n  const additionalResources = generateAdditionalResources(subject, level);\n  \n  // İçeriği formatla\n  const formattedContent = `\n    # ${subject} - ${contentType}\n    ## Seviye: ${level}\n    \n    ${content}\n    \n    ## Ek Kaynaklar\n    ${additionalResources.join('\\n    ')}\n  `;\n  \n  return {\n    formattedContent,\n    subject,\n    level,\n    contentType,\n    timestamp: new Date().toISOString()\n  };\n}\n\n// Ek kaynaklar öner\nfunction generateAdditionalResources(subject, level) {\n  const resources = [\n    '📚 Konu ile ilgili kitap önerileri',\n    '🔗 Online eğitim platformları',\n    '📝 Alıştırma kaynakları',\n    '🎬 Video dersler'\n  ];\n  \n  return resources;\n}"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-1",
+      "source": "starter-1",
+      "target": "agent-1",
+      "sourceHandle": "output",
+      "targetHandle": "input"
+    },
+    {
+      "id": "edge-2",
+      "source": "agent-1",
+      "target": "function-1",
+      "sourceHandle": "output",
+      "targetHandle": "input"
+    },
+    {
+      "id": "edge-3",
+      "source": "function-1",
+      "target": "condition-1",
+      "sourceHandle": "output",
+      "targetHandle": "input"
+    },
+    {
+      "id": "edge-4",
+      "source": "condition-1",
+      "target": "agent-2",
+      "sourceHandle": "konu",
+      "targetHandle": "input"
+    },
+    {
+      "id": "edge-5",
+      "source": "condition-1",
+      "target": "agent-3",
+      "sourceHandle": "soru",
+      "targetHandle": "input"
+    },
+    {
+      "id": "edge-6",
+      "source": "condition-1",
+      "target": "agent-4",
+      "sourceHandle": "ozet",
+      "targetHandle": "input"
+    },
+    {
+      "id": "edge-7",
+      "source": "condition-1",
+      "target": "agent-5",
+      "sourceHandle": "test",
+      "targetHandle": "input"
+    },
+    {
+      "id": "edge-8",
+      "source": "condition-1",
+      "target": "agent-2",
+      "sourceHandle": "default",
+      "targetHandle": "input"
+    },
+    {
+      "id": "edge-9",
+      "source": "agent-2",
+      "target": "function-2",
+      "sourceHandle": "output",
+      "targetHandle": "input"
+    },
+    {
+      "id": "edge-10",
+      "source": "agent-3",
+      "target": "function-2",
+      "sourceHandle": "output",
+      "targetHandle": "input"
+    },
+    {
+      "id": "edge-11",
+      "source": "agent-4",
+      "target": "function-2",
+      "sourceHandle": "output",
+      "targetHandle": "input"
+    },
+    {
+      "id": "edge-12",
+      "source": "agent-5",
+      "target": "function-2",
+      "sourceHandle": "output",
+      "targetHandle": "input"
+    }
+  ]
+}

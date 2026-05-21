@@ -1,0 +1,99 @@
+# Development Docker Compose Configuration
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - '127.0.0.1:3000:3000'
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/apps/nowflow/node_modules
+      # Exclude .next directories for better performance
+      - nowflow_next:/app/apps/nowflow/.next
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}@db:5432/nowflow
+      - POSTGRES_URL=postgresql://postgres:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}@db:5432/nowflow
+      - BETTER_AUTH_URL=${BETTER_AUTH_URL:-http://localhost:3000}
+      - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
+      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET:?BETTER_AUTH_SECRET must be set}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:?ENCRYPTION_KEY must be set}
+      - CODE_RUNNER=quickjs
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
+      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID:-}
+      - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET:-}
+      - RESEND_API_KEY=${RESEND_API_KEY:-}
+      # Node.js performance optimizations
+      - NODE_OPTIONS=--max-old-space-size=6144 --max-semi-space-size=512 --expose-gc
+      - NEXT_TELEMETRY_DISABLED=1
+      # Memory monitoring
+      - NODE_ENV_MEMORY_MONITORING=true
+    depends_on:
+      db:
+        condition: service_healthy
+    command: sh -c "npm --workspace apps/nowflow run db:push && npm run dev"
+
+  db:
+    image: pgvector/pgvector:pg16
+    restart: always
+    ports:
+      - '127.0.0.1:5432:5432'
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      - POSTGRES_DB=nowflow
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  local-llm-gpu:
+    profiles:
+      - local-gpu # This profile requires both 'local' and 'gpu'
+    image: ollama/ollama:latest
+    pull_policy: always
+    volumes:
+      - ${HOME}/.ollama:/root/.ollama
+    ports:
+      - '127.0.0.1:11434:11434'
+    environment:
+      - NVIDIA_DRIVER_CAPABILITIES=all
+      - OLLAMA_LOAD_TIMEOUT=-1
+      - OLLAMA_KEEP_ALIVE=-1
+      - OLLAMA_DEBUG=1
+    command: 'serve'
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:11434/']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  local-llm-cpu:
+    profiles:
+      - local-cpu # This profile requires both 'local' and 'cpu'
+    image: ollama/ollama:latest
+    pull_policy: always
+    volumes:
+      - ${HOME}/.ollama:/root/.ollama
+    ports:
+      - '127.0.0.1:11434:11434'
+    environment:
+      - OLLAMA_LOAD_TIMEOUT=-1
+      - OLLAMA_KEEP_ALIVE=-1
+      - OLLAMA_DEBUG=1
+    command: 'serve'
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:11434/']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+  nowflow_next:

@@ -1,0 +1,103 @@
+{
+  "metadata": {
+    "name": "Simple Q&A Assistant",
+    "description": "A basic AI assistant workflow that answers user questions",
+    "category": "general",
+    "tags": ["beginner", "assistant", "question-answering"]
+  },
+  "blocks": [
+    {
+      "id": "starter-1",
+      "type": "starter",
+      "position": {
+        "x": 100,
+        "y": 200
+      },
+      "data": {
+        "label": "Start"
+      },
+      "subBlocks": {
+        "startWorkflow": "manual",
+        "inputFormat": "text"
+      }
+    },
+    {
+      "id": "agent-1",
+      "type": "agent",
+      "position": {
+        "x": 400,
+        "y": 200
+      },
+      "data": {
+        "label": "AI Assistant"
+      },
+      "subBlocks": {
+        "systemPrompt": "You are a helpful, friendly, and knowledgeable assistant. Answer the user's questions concisely and clearly. If you don't know the answer to a question, say that you don't know and don't make up information.",
+        "context": "%input%",
+        "model": "gpt-4o",
+        "temperature": "0.7",
+        "maxTokens": "1000"
+      }
+    },
+    {
+      "id": "function-1",
+      "type": "function",
+      "position": {
+        "x": 700,
+        "y": 200
+      },
+      "data": {
+        "label": "Format Response"
+      },
+      "subBlocks": {
+        "code": "function processData(input) {\n  // Format the response\n  const response = input.content || 'No response received';\n  \n  // Create result object with metadata\n  return {\n    formattedResponse: response,\n    timestamp: new Date().toISOString(),\n    responseLength: response.length,\n    metadata: {\n      model: input.model || 'unknown',\n      processTime: input.processTime || 0\n    }\n  };\n}"
+      }
+    },
+    {
+      "id": "output-1",
+      "type": "function",
+      "position": {
+        "x": 1000,
+        "y": 200
+      },
+      "data": {
+        "label": "Output"
+      },
+      "subBlocks": {
+        "code": "function processData(input) {\n  // Simply return the input as the final output\n  return input;\n}"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-1",
+      "source": "starter-1",
+      "target": "agent-1",
+      "sourceHandle": "output",
+      "targetHandle": "input",
+      "type": "default",
+      "animated": true,
+      "style": { "stroke": "#3b82f6" }
+    },
+    {
+      "id": "edge-2",
+      "source": "agent-1",
+      "target": "function-1",
+      "sourceHandle": "output",
+      "targetHandle": "input",
+      "type": "default",
+      "animated": true,
+      "style": { "stroke": "#3b82f6" }
+    },
+    {
+      "id": "edge-3",
+      "source": "function-1",
+      "target": "output-1",
+      "sourceHandle": "output",
+      "targetHandle": "input",
+      "type": "default",
+      "animated": true,
+      "style": { "stroke": "#3b82f6" }
+    }
+  ]
+}

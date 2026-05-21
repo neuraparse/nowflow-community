@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Enterprise requests
+    url: https://nowflow.io
+    about: Managed deployment, governance, hosted UI generation, and enterprise support.
+  - name: Security vulnerability
+    url: mailto:security@nowflow.io
+    about: Please report vulnerabilities privately.

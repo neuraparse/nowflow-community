@@ -1,0 +1,56 @@
+{
+  "compilerOptions": {
+    "target": "es2024",
+    "module": "esnext",
+    "lib": ["es2024", "dom", "dom.iterable"],
+    "strict": false,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*"],
+      "@/components/*": ["components/*"],
+      "@/lib/*": ["./lib/*"],
+      "@/stores": ["./stores"],
+      "@/stores/*": ["./stores/*"],
+      "@/hooks/*": ["./hooks/*"],
+      "@/blocks": ["./blocks"],
+      "@/blocks/*": ["./blocks/*"],
+      "@/providers/*": ["./providers/*"],
+      "@/providers": ["./providers"],
+      "@/tools": ["./tools"],
+      "@/tools/*": ["./tools/*"],
+      "@/serializer": ["./serializer"],
+      "@/serializer/*": ["./serializer/*"],
+      "@/db": ["./db"],
+      "@/db/*": ["./db/*"],
+      "@/executor": ["./executor"],
+      "@/executor/*": ["./executor/*"]
+    },
+    "allowJs": true,
+    "noEmit": true,
+    "incremental": true,
+    "moduleResolution": "bundler",
+    "moduleDetection": "force",
+    "resolveJsonModule": true,
+    "resolvePackageJsonExports": true,
+    "isolatedModules": true,
+    "allowImportingTsExtensions": true,
+    "jsx": "react-jsx",
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ]
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    "../next-env.d.ts",
+    "types/**/*.d.ts",
+    ".next/dev/types/**/*.ts"
+  ],
+  "exclude": ["node_modules"]
+}

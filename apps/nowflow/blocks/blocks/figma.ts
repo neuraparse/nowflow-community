@@ -1,0 +1,135 @@
+import { FigmaIcon } from '@/components/icons'
+import {
+  createOAuthSubBlock,
+  createOperationDropdown,
+  createSimpleToolConfig,
+  defineBlock,
+} from '../helpers'
+
+export const FigmaBlock = defineBlock({
+  type: 'figma',
+  name: 'Figma',
+  description: 'Access and manage Figma design files',
+  longDescription:
+    'Integrate with Figma to access design files, components, styles, and collaborate on designs. View and extract objects, layers, and their properties from files using OAuth authentication.',
+  category: 'tools',
+  bgColor: '#F24E1E',
+  icon: FigmaIcon,
+  subBlocks: [
+    createOAuthSubBlock({
+      title: 'Figma Account',
+      provider: 'figma',
+      serviceId: 'figma',
+      requiredScopes: [
+        'file_content:read',
+        'file_metadata:read',
+        'file_comments:write',
+        'file_comments:read',
+      ],
+    }),
+    createOperationDropdown({
+      operations: [
+        { id: 'get_file', label: 'Get File' },
+        { id: 'get_file_nodes', label: 'Get File Nodes' },
+        { id: 'get_images', label: 'Get Images' },
+        { id: 'get_comments', label: 'Get Comments' },
+        { id: 'post_comment', label: 'Post Comment' },
+        { id: 'get_team_projects', label: 'Get Team Projects' },
+        { id: 'get_project_files', label: 'Get Project Files' },
+      ],
+      defaultValue: 'get_file',
+    }),
+    {
+      id: 'fileKey',
+      title: 'File Key',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: 'Enter Figma file key (from URL)',
+    },
+    {
+      id: 'nodeIds',
+      title: 'Node IDs',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: 'Comma-separated node IDs (e.g., 1:2,1:3)',
+      condition: { field: 'operation', value: 'get_file_nodes' },
+    },
+    {
+      id: 'ids',
+      title: 'Image IDs',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: 'Comma-separated node IDs to export as images',
+      condition: { field: 'operation', value: 'get_images' },
+    },
+    {
+      id: 'scale',
+      title: 'Image Scale',
+      type: 'short-input',
+      layout: 'half',
+      placeholder: '1, 2, or 4 (default: 1)',
+      condition: { field: 'operation', value: 'get_images' },
+    },
+    {
+      id: 'format',
+      title: 'Image Format',
+      type: 'dropdown',
+      layout: 'half',
+      options: [
+        { id: 'jpg', label: 'JPG' },
+        { id: 'png', label: 'PNG' },
+        { id: 'svg', label: 'SVG' },
+        { id: 'pdf', label: 'PDF' },
+      ],
+      value: () => 'png',
+      condition: { field: 'operation', value: 'get_images' },
+    },
+    {
+      id: 'message',
+      title: 'Comment Message',
+      type: 'long-input',
+      layout: 'full',
+      placeholder: 'Enter your comment',
+      condition: { field: 'operation', value: 'post_comment' },
+    },
+    {
+      id: 'teamId',
+      title: 'Team ID',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: 'Enter team ID',
+      condition: { field: 'operation', value: 'get_team_projects' },
+    },
+    {
+      id: 'projectId',
+      title: 'Project ID',
+      type: 'short-input',
+      layout: 'full',
+      placeholder: 'Enter project ID',
+      condition: { field: 'operation', value: 'get_project_files' },
+    },
+  ],
+  tools: {
+    access: ['figma_api'],
+    config: createSimpleToolConfig('figma_api'),
+  },
+  inputs: {
+    credential: { type: 'string', required: true },
+    operation: { type: 'string', required: true },
+    fileKey: { type: 'string', required: false },
+    nodeIds: { type: 'string', required: false },
+    ids: { type: 'string', required: false },
+    scale: { type: 'string', required: false },
+    format: { type: 'string', required: false },
+    message: { type: 'string', required: false },
+    teamId: { type: 'string', required: false },
+    projectId: { type: 'string', required: false },
+  },
+  outputs: {
+    response: {
+      type: {
+        data: 'json',
+      },
+    },
+  },
+})

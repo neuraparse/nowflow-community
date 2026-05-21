@@ -1,0 +1,263 @@
+{
+  "metadata": {
+    "name": "E-Ticaret Asistanı",
+    "description": "Ürün önerileri sunan, müşteri sorularını yanıtlayan ve satış sürecini destekleyen e-ticaret asistanı workflow'u",
+    "category": "ecommerce",
+    "tags": ["e-ticaret", "ürün önerisi", "satış", "müşteri desteği"]
+  },
+  "blocks": [
+    {
+      "id": "starter-1",
+      "type": "starter",
+      "position": {
+        "x": 100,
+        "y": 300
+      },
+      "data": {
+        "label": "Müşteri Talebi"
+      },
+      "subBlocks": {
+        "startWorkflow": "manual"
+      }
+    },
+    {
+      "id": "agent-1",
+      "type": "agent",
+      "position": {
+        "x": 400,
+        "y": 300
+      },
+      "data": {
+        "label": "Talep Analizi"
+      },
+      "subBlocks": {
+        "systemPrompt": "Sen bir e-ticaret asistanısın. Müşterinin talebini analiz et ve şu bilgileri çıkar: 1) Talep türü (ürün önerisi, ürün bilgisi, sipariş durumu, iade talebi, şikayet), 2) Ürün kategorisi (elektronik, giyim, ev eşyası vb.), 3) Fiyat aralığı (varsa), 4) Özel gereksinimler. Bu bilgileri JSON formatında döndür.",
+        "context": "%input%",
+        "model": "gpt-4o",
+        "temperature": "0.4"
+      }
+    },
+    {
+      "id": "function-1",
+      "type": "function",
+      "position": {
+        "x": 700,
+        "y": 300
+      },
+      "data": {
+        "label": "Talep Türü Belirleme"
+      },
+      "subBlocks": {
+        "code": "function processData(input) {\n  try {\n    // Agent yanıtını parse et\n    let requestAnalysis;\n    if (typeof input.content === 'string') {\n      // JSON string ise parse et\n      try {\n        requestAnalysis = JSON.parse(input.content);\n      } catch (e) {\n        // JSON parse edilemezse metin olarak kullan\n        requestAnalysis = {\n          talepTuru: 'ürün önerisi',\n          urunKategorisi: 'genel',\n          fiyatAraligi: 'belirtilmemiş',\n          ozelGereksinimler: []\n        };\n      }\n    } else {\n      requestAnalysis = input.content;\n    }\n    \n    // Talep türünü belirle\n    const requestType = requestAnalysis.talepTuru || requestAnalysis.talepTürü || 'ürün önerisi';\n    \n    return {\n      requestType: requestType.toLowerCase().replace(' ', '-'),\n      category: requestAnalysis.urunKategorisi || requestAnalysis.ürünKategorisi || 'genel',\n      priceRange: requestAnalysis.fiyatAraligi || requestAnalysis.fiyatAralığı || 'belirtilmemiş',\n      specialRequirements: requestAnalysis.ozelGereksinimler || requestAnalysis.özelGereksinimler || [],\n      analysis: requestAnalysis\n    };\n  } catch (error) {\n    return {\n      requestType: 'ürün-önerisi',\n      category: 'genel',\n      priceRange: 'belirtilmemiş',\n      specialRequirements: [],\n      analysis: {\n        talepTuru: 'ürün önerisi',\n        urunKategorisi: 'genel',\n        fiyatAraligi: 'belirtilmemiş',\n        ozelGereksinimler: []\n      },\n      error: error.message\n    };\n  }\n}"
+      }
+    },
+    {
+      "id": "condition-1",
+      "type": "condition",
+      "position": {
+        "x": 1000,
+        "y": 300
+      },
+      "data": {
+        "label": "Talep Türü Yönlendirme"
+      },
+      "subBlocks": {
+        "conditions": [
+          {
+            "id": "oneri",
+            "expression": "input.requestType === 'ürün-önerisi' || input.requestType === 'urun-onerisi'",
+            "description": "Ürün önerisi talebi"
+          },
+          {
+            "id": "bilgi",
+            "expression": "input.requestType === 'ürün-bilgisi' || input.requestType === 'urun-bilgisi'",
+            "description": "Ürün bilgisi talebi"
+          },
+          {
+            "id": "siparis",
+            "expression": "input.requestType === 'sipariş-durumu' || input.requestType === 'siparis-durumu'",
+            "description": "Sipariş durumu talebi"
+          },
+          {
+            "id": "iade",
+            "expression": "input.requestType === 'iade' || input.requestType === 'iade-talebi'",
+            "description": "İade talebi"
+          },
+          {
+            "id": "default",
+            "expression": "true",
+            "description": "Diğer e-ticaret talebi"
+          }
+        ]
+      }
+    },
+    {
+      "id": "agent-2",
+      "type": "agent",
+      "position": {
+        "x": 1300,
+        "y": 150
+      },
+      "data": {
+        "label": "Ürün Önerisi"
+      },
+      "subBlocks": {
+        "systemPrompt": "Sen bir ürün danışmanısın. Müşterinin ihtiyaçlarına ve tercihlerine göre en uygun ürünleri öner. Her ürün için kısa açıklamalar, öne çıkan özellikler ve fiyat bilgisi ver. En az 3, en fazla 5 ürün öner.",
+        "context": "Müşteri talebi: %input%\nTalep analizi: %function-1.analysis%\n\nKategori: %function-1.category%\nFiyat aralığı: %function-1.priceRange%\nÖzel gereksinimler: %function-1.specialRequirements%\n\nLütfen bu bilgilere göre uygun ürünler öner.",
+        "model": "gpt-4o",
+        "temperature": "0.7"
+      }
+    },
+    {
+      "id": "agent-3",
+      "type": "agent",
+      "position": {
+        "x": 1300,
+        "y": 300
+      },
+      "data": {
+        "label": "Ürün Bilgisi"
+      },
+      "subBlocks": {
+        "systemPrompt": "Sen bir ürün uzmanısın. Belirtilen ürün hakkında detaylı bilgi ver. Teknik özellikler, kullanım alanları, avantajlar ve dezavantajlar hakkında bilgi ver. Benzer ürünlerle karşılaştırma yap.",
+        "context": "Müşteri talebi: %input%\nTalep analizi: %function-1.analysis%\n\nKategori: %function-1.category%\n\nLütfen bu ürün hakkında detaylı bilgi ver.",
+        "model": "gpt-4o",
+        "temperature": "0.5"
+      }
+    },
+    {
+      "id": "agent-4",
+      "type": "agent",
+      "position": {
+        "x": 1300,
+        "y": 450
+      },
+      "data": {
+        "label": "Sipariş Durumu"
+      },
+      "subBlocks": {
+        "systemPrompt": "Sen bir sipariş takip uzmanısın. Müşteriye sipariş durumu hakkında bilgi ver. Sipariş numarası, tahmini teslimat tarihi ve kargo bilgileri hakkında açıklama yap. Sipariş numarası olmadığında nasıl bulabileceklerini açıkla.",
+        "context": "Müşteri talebi: %input%\nTalep analizi: %function-1.analysis%\n\nLütfen sipariş durumu hakkında bilgi ver.",
+        "model": "gpt-4o",
+        "temperature": "0.5"
+      }
+    },
+    {
+      "id": "agent-5",
+      "type": "agent",
+      "position": {
+        "x": 1300,
+        "y": 600
+      },
+      "data": {
+        "label": "İade İşlemleri"
+      },
+      "subBlocks": {
+        "systemPrompt": "Sen bir iade işlemleri uzmanısın. Müşteriye iade süreci hakkında bilgi ver. İade koşulları, iade süresi, iade yöntemi ve iade sonrası süreç hakkında açıklama yap.",
+        "context": "Müşteri talebi: %input%\nTalep analizi: %function-1.analysis%\n\nLütfen iade süreci hakkında bilgi ver.",
+        "model": "gpt-4o",
+        "temperature": "0.5"
+      }
+    },
+    {
+      "id": "function-2",
+      "type": "function",
+      "position": {
+        "x": 1600,
+        "y": 300
+      },
+      "data": {
+        "label": "Yanıt Formatla"
+      },
+      "subBlocks": {
+        "code": "function processData(input) {\n  // Gelen yanıtı al\n  const content = input.content || 'Yanıt oluşturulamadı';\n  const requestType = input.requestType || 'Talep türü belirlenemedi';\n  \n  // Yanıt türüne göre başlık oluştur\n  let title = 'E-Ticaret Asistanı';\n  if (requestType.includes('öneri')) {\n    title = 'Ürün Önerileri';\n  } else if (requestType.includes('bilgi')) {\n    title = 'Ürün Bilgileri';\n  } else if (requestType.includes('sipariş')) {\n    title = 'Sipariş Durumu';\n  } else if (requestType.includes('iade')) {\n    title = 'İade İşlemleri';\n  }\n  \n  // Ek bilgiler oluştur\n  const additionalInfo = getAdditionalInfo(requestType);\n  \n  // Yanıtı formatla\n  const formattedResponse = `\n    # ${title}\n    \n    ${content}\n    \n    ## Ek Bilgiler\n    ${additionalInfo.join('\\n    ')}\n    \n    Başka bir sorunuz olursa bize ulaşmaktan çekinmeyin.\n    E-Ticaret Müşteri Hizmetleri\n  `;\n  \n  return {\n    formattedResponse,\n    requestType,\n    title,\n    timestamp: new Date().toISOString()\n  };\n}\n\n// Talep türüne göre ek bilgiler oluştur\nfunction getAdditionalInfo(requestType) {\n  const commonInfo = [\n    '🛒 Alışveriş yapmak için web sitemizi ziyaret edin.',\n    '📱 Mobil uygulamamızı indirerek daha kolay alışveriş yapabilirsiniz.',\n    '💳 Güvenli ödeme seçenekleri ve taksit imkanları sunuyoruz.'\n  ];\n  \n  if (requestType.includes('öneri')) {\n    return [\n      ...commonInfo,\n      '⭐ Ürünlerimiz hakkında müşteri değerlendirmelerini inceleyebilirsiniz.',\n      '🔍 Detaylı ürün karşılaştırma özelliğimizi kullanabilirsiniz.'\n    ];\n  } else if (requestType.includes('bilgi')) {\n    return [\n      ...commonInfo,\n      '📋 Ürün teknik özelliklerini web sitemizde bulabilirsiniz.',\n      '📞 Ürün uzmanlarımızla görüşmek için müşteri hizmetlerini arayabilirsiniz.'\n    ];\n  } else if (requestType.includes('sipariş')) {\n    return [\n      ...commonInfo,\n      '🚚 Kargo takibi için web sitemizi veya mobil uygulamamızı kullanabilirsiniz.',\n      '📅 Teslimat tarihinde değişiklik için müşteri hizmetlerini arayabilirsiniz.'\n    ];\n  } else if (requestType.includes('iade')) {\n    return [\n      ...commonInfo,\n      '↩️ İade formunu web sitemizden doldurabilirsiniz.',\n      '📦 İade kargo kodunu müşteri hizmetlerinden alabilirsiniz.'\n    ];\n  }\n  \n  return commonInfo;\n}"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-1",
+      "source": "starter-1",
+      "target": "agent-1",
+      "sourceHandle": "output",
+      "targetHandle": "input"
+    },
+    {
+      "id": "edge-2",
+      "source": "agent-1",
+      "target": "function-1",
+      "sourceHandle": "output",
+      "targetHandle": "input"
+    },
+    {
+      "id": "edge-3",
+      "source": "function-1",
+      "target": "condition-1",
+      "sourceHandle": "output",
+      "targetHandle": "input"
+    },
+    {
+      "id": "edge-4",
+      "source": "condition-1",
+      "target": "agent-2",
+      "sourceHandle": "oneri",
+      "targetHandle": "input"
+    },
+    {
+      "id": "edge-5",
+      "source": "condition-1",
+      "target": "agent-3",
+      "sourceHandle": "bilgi",
+      "targetHandle": "input"
+    },
+    {
+      "id": "edge-6",
+      "source": "condition-1",
+      "target": "agent-4",
+      "sourceHandle": "siparis",
+      "targetHandle": "input"
+    },
+    {
+      "id": "edge-7",
+      "source": "condition-1",
+      "target": "agent-5",
+      "sourceHandle": "iade",
+      "targetHandle": "input"
+    },
+    {
+      "id": "edge-8",
+      "source": "condition-1",
+      "target": "agent-2",
+      "sourceHandle": "default",
+      "targetHandle": "input"
+    },
+    {
+      "id": "edge-9",
+      "source": "agent-2",
+      "target": "function-2",
+      "sourceHandle": "output",
+      "targetHandle": "input"
+    },
+    {
+      "id": "edge-10",
+      "source": "agent-3",
+      "target": "function-2",
+      "sourceHandle": "output",
+      "targetHandle": "input"
+    },
+    {
+      "id": "edge-11",
+      "source": "agent-4",
+      "target": "function-2",
+      "sourceHandle": "output",
+      "targetHandle": "input"
+    },
+    {
+      "id": "edge-12",
+      "source": "agent-5",
+      "target": "function-2",
+      "sourceHandle": "output",
+      "targetHandle": "input"
+    }
+  ]
+}

@@ -1,0 +1,247 @@
+{
+  "metadata": {
+    "name": "Sağlık Bilgilendirme Asistanı",
+    "description": "Hastaların sağlık sorularını yanıtlayan ve bilgilendiren sağlık asistanı workflow'u",
+    "category": "healthcare",
+    "tags": ["sağlık", "tıbbi bilgi", "hasta bilgilendirme"]
+  },
+  "blocks": [
+    {
+      "id": "starter-1",
+      "type": "starter",
+      "position": {
+        "x": 100,
+        "y": 300
+      },
+      "data": {
+        "label": "Sağlık Sorusu"
+      },
+      "subBlocks": {
+        "startWorkflow": "manual"
+      }
+    },
+    {
+      "id": "agent-1",
+      "type": "agent",
+      "position": {
+        "x": 400,
+        "y": 300
+      },
+      "data": {
+        "label": "Soru Analizi"
+      },
+      "subBlocks": {
+        "systemPrompt": "Sen bir sağlık bilgilendirme asistanısın. Kullanıcının sağlık sorusunu analiz et ve kategorisini belirle. Yanıtında sadece şu kategorilerden birini döndür: 'genel-sağlık', 'beslenme', 'egzersiz', 'ilaç-bilgisi', 'acil-durum' veya 'diğer'.",
+        "context": "%input%",
+        "model": "gpt-4o",
+        "temperature": "0.3"
+      }
+    },
+    {
+      "id": "condition-1",
+      "type": "condition",
+      "position": {
+        "x": 700,
+        "y": 300
+      },
+      "data": {
+        "label": "Kategori Yönlendirme"
+      },
+      "subBlocks": {
+        "conditions": [
+          {
+            "id": "acil",
+            "expression": "input.content.toLowerCase().includes('acil')",
+            "description": "Acil durum bilgilendirmesi"
+          },
+          {
+            "id": "genel",
+            "expression": "input.content.toLowerCase().includes('genel-sağlık')",
+            "description": "Genel sağlık bilgilendirmesi"
+          },
+          {
+            "id": "beslenme",
+            "expression": "input.content.toLowerCase().includes('beslenme')",
+            "description": "Beslenme bilgilendirmesi"
+          },
+          {
+            "id": "egzersiz",
+            "expression": "input.content.toLowerCase().includes('egzersiz')",
+            "description": "Egzersiz bilgilendirmesi"
+          },
+          {
+            "id": "ilac",
+            "expression": "input.content.toLowerCase().includes('ilaç')",
+            "description": "İlaç bilgilendirmesi"
+          },
+          {
+            "id": "default",
+            "expression": "true",
+            "description": "Diğer sağlık bilgilendirmesi"
+          }
+        ]
+      }
+    },
+    {
+      "id": "agent-2",
+      "type": "agent",
+      "position": {
+        "x": 1000,
+        "y": 100
+      },
+      "data": {
+        "label": "Acil Durum Bilgilendirme"
+      },
+      "subBlocks": {
+        "systemPrompt": "Sen bir acil durum bilgilendirme uzmanısın. Acil durumlarda yapılması gerekenleri açıkla, ancak tıbbi tavsiye verme. Her zaman profesyonel tıbbi yardım almanın önemini vurgula ve 112'yi aramaları gerektiğini belirt.",
+        "context": "Kullanıcı sorusu: %input%\nKategori: %agent-1.content%",
+        "model": "gpt-4o",
+        "temperature": "0.3"
+      }
+    },
+    {
+      "id": "agent-3",
+      "type": "agent",
+      "position": {
+        "x": 1000,
+        "y": 250
+      },
+      "data": {
+        "label": "Genel Sağlık Bilgilendirme"
+      },
+      "subBlocks": {
+        "systemPrompt": "Sen bir genel sağlık bilgilendirme uzmanısın. Genel sağlık konularında bilgi ver, ancak tıbbi teşhis veya tedavi önerme. Bilimsel kaynaklara dayalı bilgiler sun ve gerektiğinde bir sağlık uzmanına danışmalarını öner.",
+        "context": "Kullanıcı sorusu: %input%\nKategori: %agent-1.content%",
+        "model": "gpt-4o",
+        "temperature": "0.5"
+      }
+    },
+    {
+      "id": "agent-4",
+      "type": "agent",
+      "position": {
+        "x": 1000,
+        "y": 400
+      },
+      "data": {
+        "label": "Beslenme Bilgilendirme"
+      },
+      "subBlocks": {
+        "systemPrompt": "Sen bir beslenme uzmanısın. Sağlıklı beslenme, diyet ve besin değerleri hakkında bilgi ver. Kişiselleştirilmiş diyet planları önerme, ancak genel beslenme ilkeleri hakkında bilgi verebilirsin.",
+        "context": "Kullanıcı sorusu: %input%\nKategori: %agent-1.content%",
+        "model": "gpt-4o",
+        "temperature": "0.5"
+      }
+    },
+    {
+      "id": "agent-5",
+      "type": "agent",
+      "position": {
+        "x": 1000,
+        "y": 550
+      },
+      "data": {
+        "label": "Egzersiz Bilgilendirme"
+      },
+      "subBlocks": {
+        "systemPrompt": "Sen bir fitness ve egzersiz uzmanısın. Fiziksel aktivite, egzersiz türleri ve sağlıklı yaşam hakkında bilgi ver. Kişiselleştirilmiş egzersiz programları önerme, ancak genel egzersiz ilkeleri hakkında bilgi verebilirsin.",
+        "context": "Kullanıcı sorusu: %input%\nKategori: %agent-1.content%",
+        "model": "gpt-4o",
+        "temperature": "0.5"
+      }
+    },
+    {
+      "id": "function-1",
+      "type": "function",
+      "position": {
+        "x": 1300,
+        "y": 300
+      },
+      "data": {
+        "label": "Bilgilendirme Formatla"
+      },
+      "subBlocks": {
+        "code": "function processData(input) {\n  // Gelen yanıtı al\n  const response = input.content || 'Yanıt alınamadı';\n  const category = input.category || 'Kategori belirlenemedi';\n  \n  // Uyarı metni oluştur\n  let disclaimer = 'Bu bilgiler sadece eğitim amaçlıdır ve tıbbi tavsiye yerine geçmez. ';\n  disclaimer += 'Sağlık sorunlarınız için lütfen bir sağlık uzmanına danışın.';\n  \n  // Acil durum uyarısı ekle\n  let emergencyNote = '';\n  if (category.toLowerCase().includes('acil')) {\n    emergencyNote = '\\n\\nACİL DURUM UYARISI: Acil bir tıbbi durumda hemen 112\\'yi arayın veya en yakın acil servise başvurun.';\n  }\n  \n  // Yanıtı formatla\n  const formattedResponse = `\n    Sağlık Bilgilendirme\n    -------------------\n    Kategori: ${category}\n    \n    ${response}\n    \n    ${disclaimer}${emergencyNote}\n  `;\n  \n  return {\n    formattedResponse,\n    category,\n    disclaimer,\n    timestamp: new Date().toISOString()\n  };\n}"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-1",
+      "source": "starter-1",
+      "target": "agent-1",
+      "sourceHandle": "output",
+      "targetHandle": "input"
+    },
+    {
+      "id": "edge-2",
+      "source": "agent-1",
+      "target": "condition-1",
+      "sourceHandle": "output",
+      "targetHandle": "input"
+    },
+    {
+      "id": "edge-3",
+      "source": "condition-1",
+      "target": "agent-2",
+      "sourceHandle": "acil",
+      "targetHandle": "input"
+    },
+    {
+      "id": "edge-4",
+      "source": "condition-1",
+      "target": "agent-3",
+      "sourceHandle": "genel",
+      "targetHandle": "input"
+    },
+    {
+      "id": "edge-5",
+      "source": "condition-1",
+      "target": "agent-4",
+      "sourceHandle": "beslenme",
+      "targetHandle": "input"
+    },
+    {
+      "id": "edge-6",
+      "source": "condition-1",
+      "target": "agent-5",
+      "sourceHandle": "egzersiz",
+      "targetHandle": "input"
+    },
+    {
+      "id": "edge-7",
+      "source": "condition-1",
+      "target": "agent-3",
+      "sourceHandle": "default",
+      "targetHandle": "input"
+    },
+    {
+      "id": "edge-8",
+      "source": "agent-2",
+      "target": "function-1",
+      "sourceHandle": "output",
+      "targetHandle": "input"
+    },
+    {
+      "id": "edge-9",
+      "source": "agent-3",
+      "target": "function-1",
+      "sourceHandle": "output",
+      "targetHandle": "input"
+    },
+    {
+      "id": "edge-10",
+      "source": "agent-4",
+      "target": "function-1",
+      "sourceHandle": "output",
+      "targetHandle": "input"
+    },
+    {
+      "id": "edge-11",
+      "source": "agent-5",
+      "target": "function-1",
+      "sourceHandle": "output",
+      "targetHandle": "input"
+    }
+  ]
+}

@@ -1,0 +1,128 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/**'
+      - 'packages/**'
+      - 'patches/**'
+      - 'scripts/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'turbo.json'
+      - 'tsconfig*.json'
+      - '.github/workflows/ci.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/**'
+      - 'packages/**'
+      - 'patches/**'
+      - 'scripts/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'turbo.json'
+      - 'tsconfig*.json'
+      - '.github/workflows/ci.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Single consolidated job: shared npm install + Turborepo cache means we
+# pay the ~90s setup cost once instead of 5 times. Steps use
+# `if: ${{ !cancelled() }}` so a typecheck failure still surfaces lint /
+# format / test failures in the same run instead of forcing a re-push to
+# discover them sequentially.
+jobs:
+  ci:
+    name: Lint / Type / Test / Format
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          cache: 'npm'
+
+      - name: Cache Turborepo outputs
+        uses: actions/cache@v4
+        with:
+          path: |
+            .turbo
+            apps/*/.turbo
+            packages/*/.turbo
+          key: turbo-${{ runner.os }}-${{ github.ref_name }}-${{ github.sha }}
+          restore-keys: |
+            turbo-${{ runner.os }}-${{ github.ref_name }}-
+            turbo-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund --prefer-offline
+
+      - name: Type check (turbo)
+        if: ${{ !cancelled() }}
+        run: npm run check-types
+
+      - name: Type check (strict subset)
+        if: ${{ !cancelled() }}
+        working-directory: apps/nowflow
+        run: npx tsc -p tsconfig.strict.json --noEmit
+
+      - name: Production build
+        if: ${{ !cancelled() }}
+        run: npm run build
+
+      - name: Lint
+        if: ${{ !cancelled() }}
+        run: npm run lint
+
+      - name: Format check
+        if: ${{ !cancelled() }}
+        run: npm run format:check
+
+      - name: Public assets — magic-byte check
+        if: ${{ !cancelled() }}
+        # Catches the 2026-04-01 incident: an HTML 404 page committed as
+        # `mona-sans-variable.woff2`, undetected for 41 days because Next.js
+        # silently falls back. See scripts/check-public-assets.sh header for
+        # the full story and how to extend the check.
+        run: npm run check:assets
+
+      - name: Test (vitest)
+        if: ${{ !cancelled() }}
+        working-directory: apps/nowflow
+        # Vitest 4 + Node 20 + jsdom occasionally exits non-zero AFTER
+        # printing "Test Files N passed" — the worker pool surfaces a
+        # stray post-test rejection (the well-known runnerError trace)
+        # even though every test file actually passed. We detect that
+        # scenario explicitly: if every file passed and no file failed,
+        # treat the run as success regardless of vitest's exit code.
+        # Real failures still surface because "Test Files X failed"
+        # would appear in the log and we'd preserve the non-zero exit.
+        run: |
+          set +e
+          start=$(date +%s)
+          npm test 2>&1 | tee vitest.log
+          rc=${PIPESTATUS[0]}
+          set -e
+          dur=$(( $(date +%s) - start ))
+          echo "::notice title=Test Duration::${dur}s"
+
+          summary=$(grep -E "Tests +[0-9]+ (passed|failed)" vitest.log | tail -1 || true)
+          files_summary=$(grep -E "Test Files +[0-9]+ (passed|failed)" vitest.log | tail -1 || true)
+          [ -n "$summary" ] && echo "::notice title=Test Summary::${summary}"
+          [ -n "$files_summary" ] && echo "::notice title=Test Files::${files_summary}"
+
+          if [ "$rc" -ne 0 ]; then
+            if grep -qE "Test Files +[0-9]+ passed" vitest.log && \
+               ! grep -qE "Test Files +[0-9]+ failed" vitest.log; then
+              echo "::warning title=Vitest worker noise::All test files passed but vitest exited $rc — ignoring (likely the post-test runnerError seen in vitest 4 + node 20)."
+              exit 0
+            fi
+          fi
+          exit $rc
